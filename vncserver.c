@@ -35,6 +35,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define CONCAT3(a,b,c) a##b##c
 #define CONCAT3E(a,b,c) CONCAT3(a,b,c)
 
+char VNC_SERVERNAME[256] = "OSMC";
 char VNC_PASSWORD[256] = "";
 int VNC_PORT = 5900;
 
@@ -82,7 +83,7 @@ void initVncServer(int argc, char **argv) {
 	
 	assert(vncscr != NULL);
 	
-	vncscr->desktopName = "LibreELEC";
+	vncscr->desktopName = VNC_SERVERNAME;
 	vncscr->frameBuffer =(char *)vncbuf;
 	vncscr->port = VNC_PORT;
 	vncscr->kbdAddEvent = dokey;
@@ -153,6 +154,7 @@ void printUsage(char **argv) {
 	L("\naml-server [parameters]\n"
 		"-f <device>\t- Framebuffer device\n"
 		"-h\t\t- Print this help\n"
+		"-n <name>\t- Server name\n"
 		"-p <password>\t- Password to access server\n"
 		"-R <host:port>\t- Host for reverse connection\n");
 }
@@ -168,6 +170,10 @@ int main(int argc, char **argv) {
 				case 'h':
 					printUsage(argv);
 					exit(0);
+					break;
+				case 'n':
+					i++;
+					strcpy(VNC_SERVERNAME,argv[i]);
 					break;
 				case 'p':
 					i++;
