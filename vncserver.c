@@ -150,13 +150,14 @@ void extractReverseHostPort(char *str) {
 	}
 }
 
-void printUsage(char **argv) {
-	L("\naml-server [parameters]\n"
-		"-f <device>\t- Framebuffer device\n"
+void printUsage(char *str) {
+	L("Usage: %s [parameters]\n"
 		"-h\t\t- Print this help\n"
+		"-f <device>\t- Framebuffer device\n"
+		"-P <port>\t- Listening port\n"
 		"-n <name>\t- Server name\n"
 		"-p <password>\t- Password to access server\n"
-		"-R <host:port>\t- Host for reverse connection\n");
+		"-R <host:port>\t- Host for reverse connection\n", str);
 }
 
 int main(int argc, char **argv) {
@@ -168,7 +169,7 @@ int main(int argc, char **argv) {
 		if(*argv[i] == '-') {
 			switch(*(argv[i] + 1)) {
 				case 'h':
-					printUsage(argv);
+					printUsage(argv[0]);
 					exit(0);
 					break;
 				case 'n':
