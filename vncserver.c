@@ -164,6 +164,17 @@ void printUsage(char *str) {
 int main(int argc, char **argv) {
 	long usec;
 	
+	// Set the default server name based on the hostname
+	gethostname(VNC_SERVERNAME, sizeof(VNC_SERVERNAME));
+	
+	// Preset values from environment variables (However, the values specified in the arguments have priority.)
+	if (getenv("VNC_SERVERNAME"))
+		strcpy(VNC_SERVERNAME, getenv("VNC_SERVERNAME"));
+	if (getenv("VNC_PASSWORD"))
+		strcpy(VNC_PASSWORD, getenv("VNC_PASSWORD"));
+	if (getenv("VNC_PORT"))
+		VNC_PORT = atoi(getenv("VNC_PORT"));
+	
 	if(argc > 1) {
 		int i = 1;
 		while(i < argc) {
