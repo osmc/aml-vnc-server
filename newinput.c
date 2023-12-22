@@ -31,10 +31,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define KEY_STAR KEY_UNKNOWN
 
 int ufile;
+bool down_keys[KEY_CNT];
 
 void initUinput() {
-	struct uinput_user_dev	uinp;
+	struct uinput_user_dev uinp;
 	int retcode, i;
+	memset(down_keys, 0, sizeof(down_keys));
 	ufile = open("/dev/uinput", O_WRONLY | O_NDELAY );
 	printf("open /dev/uinput returned %d.\n", ufile);
 	if (ufile == 0) {
@@ -63,6 +65,7 @@ void closeUinput() {
 	ioctl(ufile, UI_DEV_DESTROY);
 	close(ufile);
 }
+
 int keysym2scancode(rfbKeySym key) {
 	//printf("keysym: %04X\n", key);
 	int scancode = 0;
@@ -173,12 +176,14 @@ int keysym2scancode(rfbKeySym key) {
 
 void dokey(rfbBool down,rfbKeySym key,rfbClientPtr cl) {
 	struct input_event event;
+	int scancode = keysym2scancode(key);
+	bool was_down = down_keys[scancode];
 	if(down) {
 		memset(&event, 0, sizeof(event));
 		gettimeofday(&event.time, NULL);
 		event.type = EV_KEY;
-		event.code = keysym2scancode(key); //nomodifiers!
-		event.value = 1; //key pressed
+		event.code = scancode; //nomodifiers!
+		event.value = was_down ? 2 : 1; //key repeat/press
 		write(ufile, &event, sizeof(event));
 		memset(&event, 0, sizeof(event));
 		gettimeofday(&event.time, NULL);
@@ -186,11 +191,12 @@ void dokey(rfbBool down,rfbKeySym key,rfbClientPtr cl) {
 		event.code = SYN_REPORT; //not sure what this is for? i'm guessing its some kind of sync thing?
 		event.value = 0;
 		write(ufile, &event, sizeof(event));
+		down_keys[scancode] = true;
 	} else {
 		memset(&event, 0, sizeof(event));
 		gettimeofday(&event.time, NULL);
 		event.type = EV_KEY;
-		event.code = keysym2scancode(key); //nomodifiers!
+		event.code = scancode; //nomodifiers!
 		event.value = 0; //key realeased
 		write(ufile, &event, sizeof(event));
 		memset(&event, 0, sizeof(event));
@@ -199,5 +205,6 @@ void dokey(rfbBool down,rfbKeySym key,rfbClientPtr cl) {
 		event.code = SYN_REPORT; //not sure what this is for? i'm guessing its some kind of sync thing?
 		event.value = 0;
 		write(ufile, &event, sizeof(event));
+		down_keys[scancode] = false;
 	}
 }
