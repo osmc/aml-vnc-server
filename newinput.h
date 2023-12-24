@@ -9,8 +9,8 @@
 
 #include "common.h"
 
-void initUinput();
-void closeUinput();
+void initVirtKbd();
+void closeVirtKbd();
 int keysym2scancode(rfbKeySym key);
 void dokey(rfbBool down,rfbKeySym key,rfbClientPtr cl);
 

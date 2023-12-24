@@ -123,7 +123,7 @@ void initVncServer(int argc, char **argv) {
 void close_app() {
 	L("Cleaning up...\n");
 	closeFB();
-	closeUinput();
+	closeVirtKbd();
 	exit(0); /* normal exit status */
 }
 
@@ -215,7 +215,7 @@ int main(int argc, char **argv) {
 	initFB();
 	
 	L("Initializing virtual keyboard...\n");
-	initUinput();
+	initVirtKbd();
 	
 	L("Initializing VNC server:\n");
 	L("	width:  %d\n", (int)screenformat.width);
@@ -241,7 +241,6 @@ int main(int argc, char **argv) {
 			rfbStartOnHoldClient(cl);
 		}
 	}
-	
 	
 	while (1) {
 		usec = (vncscr->deferUpdateTime + standby) * 1000;

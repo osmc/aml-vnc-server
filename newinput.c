@@ -21,7 +21,6 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-
 #include "newinput.h"
 
 #define KEY_SOFT1 KEY_UNKNOWN
@@ -30,63 +29,75 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define KEY_SHARP KEY_UNKNOWN
 #define KEY_STAR KEY_UNKNOWN
 
-int ufile;
+int ukbd;
 bool down_keys[KEY_CNT];
 
-void initUinput() {
+void initVirtKbd() {
 	struct uinput_user_dev uinp;
 	int retcode, i;
+
 	memset(down_keys, 0, sizeof(down_keys));
-	ufile = open("/dev/uinput", O_WRONLY | O_NDELAY );
-	printf("open /dev/uinput returned %d.\n", ufile);
-	if (ufile == 0) {
+
+	ukbd = open("/dev/uinput", O_WRONLY | O_NDELAY );
+	printf("open /dev/uinput returned %d.\n", ukbd);
+
+	if (ukbd == 0) {
 		printf("Could not open uinput.\n");
 		exit(-1);
 	}
+
 	memset(&uinp, 0, sizeof(uinp));
-	strncpy(uinp.name, "VNCServer SimKey", 20);
+	strncpy(uinp.name, "VNC virtual keyboard", 20);
 	uinp.id.version = 4;
 	uinp.id.bustype = BUS_USB;
-	ioctl(ufile, UI_SET_EVBIT, EV_KEY);
-	for (i=0; i<KEY_MAX; i++) { //I believe this is to tell UINPUT what keys we can make?
-		ioctl(ufile, UI_SET_KEYBIT, i);
+
+	ioctl(ukbd, UI_SET_EVBIT, EV_SYN);
+	ioctl(ukbd, UI_SET_EVBIT, EV_KEY);
+
+	for (i=0; i<KEY_MAX; i++) {
+		ioctl(ukbd, UI_SET_KEYBIT, i);
 	}
-	retcode = write(ufile, &uinp, sizeof(uinp));
+
+	retcode = write(ukbd, &uinp, sizeof(uinp));
 	printf("First write returned %d.\n", retcode);
-	retcode = (ioctl(ufile, UI_DEV_CREATE));
+
+	retcode = (ioctl(ukbd, UI_DEV_CREATE));
 	printf("ioctl UI_DEV_CREATE returned %d.\n", retcode);
+
 	if (retcode) {
 		printf("Error create uinput device %d.\n", retcode);
 		exit(-1);
 	}
 }
 
-void closeUinput() {
-	ioctl(ufile, UI_DEV_DESTROY);
-	close(ufile);
+void closeVirtKbd() {
+	ioctl(ukbd, UI_DEV_DESTROY);
+	close(ukbd);
 }
 
 int keysym2scancode(rfbKeySym key) {
-	//printf("keysym: %04X\n", key);
 	int scancode = 0;
 	int code = (int) key;
+
+	//printf("DEBUG -> Keyboard keysim code: %04X.\n", key);
+
 	if (code>='0' && code<='9') {
 		scancode = (code & 0xF) - 1;
 		if (scancode<0) scancode += 10;
 		scancode += KEY_1;
 	} else if (code>=0xFF50 && code<=0xFF58) {
-		static const uint16_t map[] =
-		{ KEY_HOME, KEY_LEFT, KEY_UP, KEY_RIGHT, KEY_DOWN,
-		KEY_PAGEUP, KEY_PAGEDOWN, KEY_END, 0 };
+		static const uint16_t map[] = {
+			KEY_HOME, KEY_LEFT, KEY_UP, KEY_RIGHT, KEY_DOWN,
+			KEY_PAGEUP, KEY_PAGEDOWN, KEY_END, 0 };
 		scancode = map[code & 0xF];
 	} else if (code>=0xFFE1 && code<=0xFFEE) {
-		static const uint16_t map[] =
-		{ KEY_LEFTSHIFT, KEY_LEFTSHIFT,
-		KEY_LEFTCTRL, KEY_LEFTCTRL,
-		KEY_LEFTSHIFT, KEY_LEFTSHIFT,
-		0,0,
-		KEY_LEFTALT, KEY_RIGHTALT,
-		0, 0, 0, 0 };
+		static const uint16_t map[] = {
+			KEY_LEFTSHIFT, KEY_LEFTSHIFT,
+			KEY_LEFTCTRL, KEY_LEFTCTRL,
+			KEY_LEFTSHIFT, KEY_LEFTSHIFT,
+			0,0,
+			KEY_LEFTALT, KEY_RIGHTALT,
+			0, 0, 0, 0 };
 		scancode = map[code & 0xF];
 	} else if ((code>='A' && code<='Z') || (code>='a' && code<='z')) {
 		static const uint16_t map[] = {
@@ -177,34 +188,37 @@ int keysym2scancode(rfbKeySym key) {
 void dokey(rfbBool down,rfbKeySym key,rfbClientPtr cl) {
 	struct input_event event;
 	int scancode = keysym2scancode(key);
+
 	bool was_down = down_keys[scancode];
+
+	// Key press event
 	if(down) {
 		memset(&event, 0, sizeof(event));
 		gettimeofday(&event.time, NULL);
 		event.type = EV_KEY;
-		event.code = scancode; //nomodifiers!
-		event.value = was_down ? 2 : 1; //key repeat/press
-		write(ufile, &event, sizeof(event));
-		memset(&event, 0, sizeof(event));
-		gettimeofday(&event.time, NULL);
-		event.type = EV_SYN;
-		event.code = SYN_REPORT; //not sure what this is for? i'm guessing its some kind of sync thing?
-		event.value = 0;
-		write(ufile, &event, sizeof(event));
+		event.code = scancode;
+		event.value = was_down ? 2 : 1; // Key repeat/press
+		write(ukbd, &event, sizeof(event));
+
 		down_keys[scancode] = true;
+
+	// Key release event
 	} else {
 		memset(&event, 0, sizeof(event));
 		gettimeofday(&event.time, NULL);
 		event.type = EV_KEY;
-		event.code = scancode; //nomodifiers!
-		event.value = 0; //key realeased
-		write(ufile, &event, sizeof(event));
-		memset(&event, 0, sizeof(event));
-		gettimeofday(&event.time, NULL);
-		event.type = EV_SYN;
-		event.code = SYN_REPORT; //not sure what this is for? i'm guessing its some kind of sync thing?
-		event.value = 0;
-		write(ufile, &event, sizeof(event));
+		event.code = scancode;
+		event.value = 0; // Key realeased
+		write(ukbd, &event, sizeof(event));
+
 		down_keys[scancode] = false;
 	}
+
+	// Synchronization
+	memset(&event, 0, sizeof(event));
+	gettimeofday(&event.time, NULL);
+	event.type = EV_SYN;
+	event.code = SYN_REPORT;
+	event.value = 0;
+	write(ukbd, &event, sizeof(event));
 }
