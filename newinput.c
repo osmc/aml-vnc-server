@@ -29,11 +29,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define KEY_SHARP KEY_UNKNOWN
 #define KEY_STAR KEY_UNKNOWN
 #define BTN_LEFT_MASK 0x1
+#define BTN_MIDDLE_MASK 0x2
 #define BTN_RIGHT_MASK 0x4
+#define WHEEL_UP_MASK 0x8
+#define WHEEL_DOWN_MASK 0x10
 
 int ukbd, uptr;
 bool down_keys[KEY_CNT];
-int mouse_x, mouse_y, mouse_button = 0;
+int mouse_x, mouse_y;
+int mouse_button = 0;
 
 void initVirtKbd() {
 	struct uinput_user_dev uinp;
@@ -97,6 +101,9 @@ void initVirtPtr() {
 
 	ioctl(uptr, UI_SET_KEYBIT, BTN_LEFT);
 	ioctl(uptr, UI_SET_KEYBIT, BTN_RIGHT);
+	ioctl(uptr, UI_SET_KEYBIT, BTN_MIDDLE);
+
+	ioctl(uptr, UI_SET_RELBIT, REL_WHEEL);
 
 	ioctl(uptr, UI_SET_ABSBIT, ABS_X);
 	ioctl(uptr, UI_SET_ABSBIT, ABS_Y);
@@ -254,17 +261,16 @@ void dokey(rfbBool down, rfbKeySym key, rfbClientPtr cl) {
 
 	// Key press event
 	if(down) {
-		writeEvent(ukbd, EV_KEY, scancode, was_down ? 2 : 1);
+		writeEvent(ukbd, EV_KEY, scancode, was_down ? 2 : 1); // Key repeat/press
+		writeEvent(ukbd, EV_SYN, SYN_REPORT, 0); // Synchronization
 		down_keys[scancode] = true;
 
 	// Key release event
 	} else {
-		writeEvent(ukbd, EV_KEY, scancode, 0);
+		writeEvent(ukbd, EV_KEY, scancode, 0); // Key release
+		writeEvent(ukbd, EV_SYN, SYN_REPORT, 0); // Synchronization
 		down_keys[scancode] = false;
 	}
-
-	// Synchronization
-	writeEvent(ukbd, EV_SYN, SYN_REPORT, 0);
 }
 
 void doptr(int buttonMask, int x, int y, rfbClientPtr cl) {
@@ -272,20 +278,16 @@ void doptr(int buttonMask, int x, int y, rfbClientPtr cl) {
 
 	// Mouse movements
 	if (mouse_x != x || mouse_y != y) {
+		writeEvent(uptr, EV_ABS, ABS_X, x); // X-axis
+		writeEvent(uptr, EV_ABS, ABS_Y, y); // Y-axis
+		writeEvent(uptr, EV_SYN, SYN_REPORT, 0); // Synchronization
 
-		// X-axis
-		writeEvent(uptr, EV_ABS, ABS_X, x);
+		// Set the current position as the last position
 		mouse_x = x;
-
-		// Y-axis
-		writeEvent(uptr, EV_ABS, ABS_Y, y);
 		mouse_y = y;
-
-		// Synchronization
-		writeEvent(uptr, EV_SYN, SYN_REPORT, 0);
 	}
 
-	// Mouse buttons
+	// Mouse buttons and scroll events
 	if (mouse_button != buttonMask) {
 
 		// Left button
@@ -293,9 +295,24 @@ void doptr(int buttonMask, int x, int y, rfbClientPtr cl) {
 			writeEvent(uptr, EV_KEY, BTN_LEFT, buttonMask & BTN_LEFT_MASK);
 		}
 
+		// Middle button
+		if ((mouse_button & BTN_MIDDLE_MASK) != (buttonMask & BTN_MIDDLE_MASK)) {
+			writeEvent(uptr, EV_KEY, BTN_MIDDLE, buttonMask & BTN_MIDDLE_MASK);
+		}
+
 		// Right button
 		if ((mouse_button & BTN_RIGHT_MASK) != (buttonMask & BTN_RIGHT_MASK)) {
 			writeEvent(uptr, EV_KEY, BTN_RIGHT, buttonMask & BTN_RIGHT_MASK);
+		}
+
+		// Wheel up
+		if ((mouse_button & WHEEL_UP_MASK) != (buttonMask & WHEEL_UP_MASK)) {
+			writeEvent(uptr, EV_REL, REL_WHEEL, BTN_LEFT_MASK);
+		}
+
+		// Wheel down
+		if ((mouse_button & WHEEL_DOWN_MASK) != (buttonMask & WHEEL_DOWN_MASK)) {
+			writeEvent(uptr, EV_REL, REL_WHEEL, -BTN_RIGHT_MASK);
 		}
 
 		// Synchronization
