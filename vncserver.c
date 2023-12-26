@@ -89,6 +89,7 @@ void initVncServer(int argc, char **argv) {
 	vncscr->port = VNC_PORT;
 	vncscr->ipv6port = VNC_PORT;
 	vncscr->kbdAddEvent = dokey;
+	vncscr->ptrAddEvent = doptr;
 	vncscr->newClientHook = (rfbNewClientHookPtr)clientHook;
 	
 	if (strcmp(VNC_PASSWORD, "") != 0) {
@@ -124,6 +125,7 @@ void close_app() {
 	L("Cleaning up...\n");
 	closeFB();
 	closeVirtKbd();
+	closeVirtPtr();
 	exit(0); /* normal exit status */
 }
 
@@ -216,6 +218,9 @@ int main(int argc, char **argv) {
 	
 	L("Initializing virtual keyboard...\n");
 	initVirtKbd();
+	
+	L("Initializing virtual pointer...\n");
+	initVirtPtr();
 	
 	L("Initializing VNC server:\n");
 	L("	width:  %d\n", (int)screenformat.width);

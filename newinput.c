@@ -28,9 +28,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define KEY_CENTER KEY_UNKNOWN
 #define KEY_SHARP KEY_UNKNOWN
 #define KEY_STAR KEY_UNKNOWN
+#define BTN_LEFT_MASK 0x1
+#define BTN_RIGHT_MASK 0x4
 
-int ukbd;
+int ukbd, uptr;
 bool down_keys[KEY_CNT];
+int mouse_x, mouse_y, mouse_button = 0;
 
 void initVirtKbd() {
 	struct uinput_user_dev uinp;
@@ -70,9 +73,59 @@ void initVirtKbd() {
 	}
 }
 
+void initVirtPtr() {
+	struct uinput_user_dev uinp;
+	int retcode, i;
+
+	uptr = open("/dev/uinput", O_WRONLY | O_NDELAY );
+	printf("open /dev/uinput returned %d.\n", uptr);
+
+	if (uptr == 0) {
+		printf("Could not open uinput.\n");
+		exit(-1);
+	}
+
+	memset(&uinp, 0, sizeof(uinp));
+	strncpy(uinp.name, "VNC virtual pointer", 20);
+	uinp.id.version = 1;
+	uinp.id.bustype = BUS_USB;
+
+	ioctl(uptr, UI_SET_EVBIT, EV_SYN);
+	ioctl(uptr, UI_SET_EVBIT, EV_KEY);
+	ioctl(uptr, UI_SET_EVBIT, EV_REL);
+	ioctl(uptr, UI_SET_EVBIT, EV_ABS);
+
+	ioctl(uptr, UI_SET_KEYBIT, BTN_LEFT);
+	ioctl(uptr, UI_SET_KEYBIT, BTN_RIGHT);
+
+	ioctl(uptr, UI_SET_ABSBIT, ABS_X);
+	ioctl(uptr, UI_SET_ABSBIT, ABS_Y);
+
+	uinp.absmin[ABS_X] = 0;
+	uinp.absmax[ABS_X] = screenformat.width - 1;
+	uinp.absmin[ABS_Y] = 0;
+	uinp.absmax[ABS_Y] = screenformat.height - 1;
+
+	retcode = write(uptr, &uinp, sizeof(uinp));
+	printf("First write returned %d.\n", retcode);
+
+	retcode = (ioctl(uptr, UI_DEV_CREATE));
+	printf("ioctl UI_DEV_CREATE returned %d.\n", retcode);
+
+	if (retcode) {
+		printf("Error create uinput device %d.\n", retcode);
+		exit(-1);
+	}
+}
+
 void closeVirtKbd() {
 	ioctl(ukbd, UI_DEV_DESTROY);
 	close(ukbd);
+}
+
+void closeVirtPtr() {
+	ioctl(uptr, UI_DEV_DESTROY);
+	close(uptr);
 }
 
 void writeEvent(int udev, __u16 type, __u16 code, __s32 value) {
@@ -212,4 +265,43 @@ void dokey(rfbBool down, rfbKeySym key, rfbClientPtr cl) {
 
 	// Synchronization
 	writeEvent(ukbd, EV_SYN, SYN_REPORT, 0);
+}
+
+void doptr(int buttonMask, int x, int y, rfbClientPtr cl) {
+	//printf("DEBUG -> Mouse button mask: 0x%x, remote cursor position: X=%d, Y=%d.\n", buttonMask, x,y);
+
+	// Mouse movements
+	if (mouse_x != x || mouse_y != y) {
+
+		// X-axis
+		writeEvent(uptr, EV_ABS, ABS_X, x);
+		mouse_x = x;
+
+		// Y-axis
+		writeEvent(uptr, EV_ABS, ABS_Y, y);
+		mouse_y = y;
+
+		// Synchronization
+		writeEvent(uptr, EV_SYN, SYN_REPORT, 0);
+	}
+
+	// Mouse buttons
+	if (mouse_button != buttonMask) {
+
+		// Left button
+		if ((mouse_button & BTN_LEFT_MASK) != (buttonMask & BTN_LEFT_MASK)) {
+			writeEvent(uptr, EV_KEY, BTN_LEFT, buttonMask & BTN_LEFT_MASK);
+		}
+
+		// Right button
+		if ((mouse_button & BTN_RIGHT_MASK) != (buttonMask & BTN_RIGHT_MASK)) {
+			writeEvent(uptr, EV_KEY, BTN_RIGHT, buttonMask & BTN_RIGHT_MASK);
+		}
+
+		// Synchronization
+		writeEvent(uptr, EV_SYN, SYN_REPORT, 0);
+
+		// Set the current state as the last button state
+		mouse_button = buttonMask;
+	}
 }
