@@ -11,8 +11,9 @@
 
 void initVirtKbd();
 void closeVirtKbd();
+void writeEvent(int udev, __u16 type, __u16 code, __s32 value);
 int keysym2scancode(rfbKeySym key);
-void dokey(rfbBool down,rfbKeySym key,rfbClientPtr cl);
+void dokey(rfbBool down, rfbKeySym key, rfbClientPtr cl);
 
 #endif
 

@@ -75,6 +75,16 @@ void closeVirtKbd() {
 	close(ukbd);
 }
 
+void writeEvent(int udev, __u16 type, __u16 code, __s32 value) {
+	struct input_event event;
+	memset(&event, 0, sizeof(event));
+	gettimeofday(&event.time, NULL);
+	event.type = type;
+	event.code = code;
+	event.value = value;
+	write(udev, &event, sizeof(event));
+}
+
 int keysym2scancode(rfbKeySym key) {
 	int scancode = 0;
 	int code = (int) key;
@@ -185,40 +195,21 @@ int keysym2scancode(rfbKeySym key) {
 	return scancode;
 }
 
-void dokey(rfbBool down,rfbKeySym key,rfbClientPtr cl) {
-	struct input_event event;
+void dokey(rfbBool down, rfbKeySym key, rfbClientPtr cl) {
 	int scancode = keysym2scancode(key);
-
 	bool was_down = down_keys[scancode];
 
 	// Key press event
 	if(down) {
-		memset(&event, 0, sizeof(event));
-		gettimeofday(&event.time, NULL);
-		event.type = EV_KEY;
-		event.code = scancode;
-		event.value = was_down ? 2 : 1; // Key repeat/press
-		write(ukbd, &event, sizeof(event));
-
+		writeEvent(ukbd, EV_KEY, scancode, was_down ? 2 : 1);
 		down_keys[scancode] = true;
 
 	// Key release event
 	} else {
-		memset(&event, 0, sizeof(event));
-		gettimeofday(&event.time, NULL);
-		event.type = EV_KEY;
-		event.code = scancode;
-		event.value = 0; // Key realeased
-		write(ukbd, &event, sizeof(event));
-
+		writeEvent(ukbd, EV_KEY, scancode, 0);
 		down_keys[scancode] = false;
 	}
 
 	// Synchronization
-	memset(&event, 0, sizeof(event));
-	gettimeofday(&event.time, NULL);
-	event.type = EV_SYN;
-	event.code = SYN_REPORT;
-	event.value = 0;
-	write(ukbd, &event, sizeof(event));
+	writeEvent(ukbd, EV_SYN, SYN_REPORT, 0);
 }
