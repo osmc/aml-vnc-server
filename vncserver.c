@@ -47,14 +47,11 @@ static rfbScreenInfoPtr vncscr;
 uint32_t idle = 1;
 uint32_t standby = 1;
 
-//reverse connection
+// Reverse connection
 char *rhost = NULL;
 int rport = 5500;
 
 void (*update_screen)(void) = NULL;
-
-#define PIXEL_TO_VIRTUALPIXEL_FB(i,j) ((j + scrinfo.yoffset) * scrinfo.xres_virtual + i + scrinfo.xoffset)
-#define PIXEL_TO_VIRTUALPIXEL(i,j) ((j * screenformat.width) + i)
 
 #define OUT 32
 #include "updateScreen.c"
@@ -73,7 +70,6 @@ rfbNewClientHookPtr clientHook(rfbClientPtr cl) {
 	
 	return RFB_CLIENT_ACCEPT;
 }
-
 
 void initVncServer(int argc, char **argv) {
 	vncbuf = calloc(screenformat.width * screenformat.height, screenformat.bitsPerPixel/CHAR_BIT);

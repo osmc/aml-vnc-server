@@ -23,17 +23,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "newinput.h"
 
-#define KEY_SOFT1 KEY_UNKNOWN
-#define KEY_SOFT2 KEY_UNKNOWN
-#define KEY_CENTER KEY_UNKNOWN
-#define KEY_SHARP KEY_UNKNOWN
-#define KEY_STAR KEY_UNKNOWN
-#define BTN_LEFT_MASK 0x1
-#define BTN_MIDDLE_MASK 0x2
-#define BTN_RIGHT_MASK 0x4
-#define WHEEL_UP_MASK 0x8
-#define WHEEL_DOWN_MASK 0x10
-
 int ukbd, uptr;
 bool down_keys[KEY_CNT];
 int mouse_x, mouse_y;
@@ -276,17 +265,6 @@ void dokey(rfbBool down, rfbKeySym key, rfbClientPtr cl) {
 void doptr(int buttonMask, int x, int y, rfbClientPtr cl) {
 	//printf("DEBUG -> Mouse button mask: 0x%x, remote cursor position: X=%d, Y=%d.\n", buttonMask, x,y);
 
-	// Mouse movements
-	if (mouse_x != x || mouse_y != y) {
-		writeEvent(uptr, EV_ABS, ABS_X, x); // X-axis
-		writeEvent(uptr, EV_ABS, ABS_Y, y); // Y-axis
-		writeEvent(uptr, EV_SYN, SYN_REPORT, 0); // Synchronization
-
-		// Set the current position as the last position
-		mouse_x = x;
-		mouse_y = y;
-	}
-
 	// Mouse buttons and scroll events
 	if (mouse_button != buttonMask) {
 
@@ -315,10 +293,20 @@ void doptr(int buttonMask, int x, int y, rfbClientPtr cl) {
 			writeEvent(uptr, EV_REL, REL_WHEEL, -BTN_RIGHT_MASK);
 		}
 
-		// Synchronization
-		writeEvent(uptr, EV_SYN, SYN_REPORT, 0);
-
 		// Set the current state as the last button state
 		mouse_button = buttonMask;
+
+		// Mouse movements -> To minimize CPU load only update the cursor on server side when mouse interaction occurs.
+		if (mouse_x != x || mouse_y != y) {
+			writeEvent(uptr, EV_ABS, ABS_X, x); // X-axis
+			writeEvent(uptr, EV_ABS, ABS_Y, y); // Y-axis
+
+			// Set the current position as the last position
+			mouse_x = x;
+			mouse_y = y;
+		}
+
+		// Synchronization
+		writeEvent(uptr, EV_SYN, SYN_REPORT, 0);
 	}
 }

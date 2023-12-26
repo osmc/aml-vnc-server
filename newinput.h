@@ -9,6 +9,18 @@
 
 #include "common.h"
 
+#define KEY_SOFT1 KEY_UNKNOWN
+#define KEY_SOFT2 KEY_UNKNOWN
+#define KEY_CENTER KEY_UNKNOWN
+#define KEY_SHARP KEY_UNKNOWN
+#define KEY_STAR KEY_UNKNOWN
+
+#define BTN_LEFT_MASK 0x1
+#define BTN_MIDDLE_MASK 0x2
+#define BTN_RIGHT_MASK 0x4
+#define WHEEL_UP_MASK 0x8
+#define WHEEL_DOWN_MASK 0x10
+
 void initVirtKbd();
 void closeVirtKbd();
 void initVirtPtr();
