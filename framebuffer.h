@@ -3,6 +3,7 @@ droid VNC server  - a vnc server for android
 Copyright (C) 2011 Jose Pereira <onaips@gmail.com>
 
 Modified for AML TV Boxes by kszaq <kszaquitto@gmail.com>
+Additional developments by dtech(.hu) <dee.gabor@gmail.com>
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -26,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 int initFB(void);
 void closeFB(void);
+int checkResChange(void);
 unsigned int *readBufferFB(void);
 void FB_setDevice(char *);
 struct fb_var_screeninfo FB_getscrinfo(void);

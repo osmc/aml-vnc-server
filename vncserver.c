@@ -70,12 +70,12 @@ rfbNewClientHookPtr clientHook(rfbClientPtr cl) {
 	return RFB_CLIENT_ACCEPT;
 }
 
-void initVncServer(int argc, char **argv) {
-	vncbuf = calloc(screenformat.width * screenformat.height, screenformat.bitsPerPixel/CHAR_BIT);
+void initServer(int argc, char **argv) {
+	vncbuf = calloc(screenformat.width * screenformat.height, screenformat.bitsPerPixel / CHAR_BIT);
 	
 	assert(vncbuf != NULL);
 	
-	vncscr = rfbGetScreen(&argc, argv, screenformat.width, screenformat.height, 0 /* not used */ , 3,  screenformat.bitsPerPixel/CHAR_BIT);
+	vncscr = rfbGetScreen(&argc, argv, screenformat.width, screenformat.height, 0 /* not used */ , 3,  screenformat.bitsPerPixel / CHAR_BIT);
 	
 	assert(vncscr != NULL);
 	
@@ -130,13 +130,13 @@ void extractReverseHostPort(char *str) {
 	/* copy in to host */
 	rhost = (char *) malloc(len + 1);
 	if (! rhost) {
-		L("reverse_connect: could not malloc string %d\n", len);
+		L("Reverse connection: could not malloc string %d\n", len);
 		exit(-1);
 	}
 	strncpy(rhost, str, len);
 	rhost[len] = '\0';
 	
-	/* extract port, if any */
+	/* Extract port, if any */
 	if ((p = strrchr(rhost, ':')) != NULL) {
 		rport = atoi(p + 1);
 		if (rport < 0) {
@@ -150,8 +150,8 @@ void extractReverseHostPort(char *str) {
 }
 
 void printUsage(char *str) {
-	L("A framebuffer based VNC Server for Amlogic devices\n\n");
-	L("Usage: %s [parameters]\n"
+	L("A framebuffer based VNC Server for Amlogic devices\n\n"
+		"Usage: %s [parameters]\n"
 		"-h\t\t- Print this help\n"
 		"-f <device>\t- Framebuffer device\n"
 		"-P <port>\t- Listening port\n"
@@ -182,38 +182,39 @@ int main(int argc, char **argv) {
 	if(argc > 1) {
 		int i = 1;
 		while(i < argc) {
-		if(*argv[i] == '-') {
-			switch(*(argv[i] + 1)) {
-				case 'h':
-					printUsage(argv[0]);
-					exit(0);
-					break;
-				case 'n':
-					i++;
-					strcpy(VNC_SERVERNAME,argv[i]);
-					break;
-				case 'p':
-					i++;
-					strcpy(VNC_PASSWORD,argv[i]);
-					break;
-				case 'f':
-					i++;
-					FB_setDevice(argv[i]);
-					break;
-				case 'P':
-					i++;
-					VNC_PORT=atoi(argv[i]);
-					break;
-				case 'R':
-					i++;
-					extractReverseHostPort(argv[i]);
-					break;
+			if(*argv[i] == '-') {
+				switch(*(argv[i] + 1)) {
+					case 'h':
+						printUsage(argv[0]);
+						exit(0);
+						break;
+					case 'n':
+						i++;
+						strcpy(VNC_SERVERNAME,argv[i]);
+						break;
+					case 'p':
+						i++;
+						strcpy(VNC_PASSWORD,argv[i]);
+						break;
+					case 'f':
+						i++;
+						FB_setDevice(argv[i]);
+						break;
+					case 'P':
+						i++;
+						VNC_PORT=atoi(argv[i]);
+						break;
+					case 'R':
+						i++;
+						extractReverseHostPort(argv[i]);
+						break;
+				}
 			}
-		}
 		i++;
 		}
 	}
 	
+
 	L("Initializing grabber method...\n");
 	initFB();
 	
@@ -232,7 +233,7 @@ int main(int argc, char **argv) {
 	L("Colourmap_rgba=%d:%d:%d    length=%d:%d:%d\n", screenformat.redShift, screenformat.greenShift, screenformat.blueShift,
 		screenformat.redMax, screenformat.greenMax, screenformat.blueMax);
 	
-	initVncServer(argc, argv);
+	initServer(argc, argv);
 	
 	if (rhost) {
 		rfbClientPtr cl;
@@ -256,8 +257,14 @@ int main(int argc, char **argv) {
 		else
 			standby = 10;
 		
-		if (vncscr->clientHead != NULL)
-			update_screen();
+		if (vncscr->clientHead != NULL) {
+			if (!checkResChange()) {
+				update_screen();
+			} else {
+				L("Screen resolution changed, server connection will be closed.\n");
+				close_app();
+			}
+		}
 	}
 	
 	close_app();

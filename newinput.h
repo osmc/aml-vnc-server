@@ -22,8 +22,8 @@
 #define WHEEL_DOWN_MASK 0x10
 
 void initVirtKbd();
-void closeVirtKbd();
 void initVirtPtr();
+void closeVirtKbd();
 void closeVirtPtr();
 void writeEvent(int udev, __u16 type, __u16 code, __s32 value);
 int keysym2scancode(rfbKeySym key);

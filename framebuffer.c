@@ -6,6 +6,7 @@ Other contributors:
   Oleksandr Andrushchenko <andr2000@gmail.com>
 
 Modified for AML TV Boxes by kszaq <kszaquitto@gmail.com>
+Additional developments by dtech(.hu) <dee.gabor@gmail.com>
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -99,6 +100,14 @@ int initFB(void) {
 	screenformat.blueMax = scrinfo.blue.length;
 	
 	return 1;
+}
+
+int checkResChange(void) {
+	if ((scrinfo.xres != screenformat.width) || (scrinfo.yres != screenformat.height)) {
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 void closeFB(void) {
