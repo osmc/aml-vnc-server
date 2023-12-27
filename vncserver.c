@@ -21,9 +21,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "common.h"
+#include "version.h"
 #include "framebuffer.h"
-
-#include "common.h"
 #include "newinput.h"
 
 #include <rfb/rfb.h>
@@ -151,6 +150,7 @@ void extractReverseHostPort(char *str) {
 }
 
 void printUsage(char *str) {
+	L("A framebuffer based VNC Server for Amlogic devices\n\n");
 	L("Usage: %s [parameters]\n"
 		"-h\t\t- Print this help\n"
 		"-f <device>\t- Framebuffer device\n"
@@ -173,6 +173,11 @@ int main(int argc, char **argv) {
 		strcpy(VNC_PASSWORD, getenv("VNC_PASSWORD"));
 	if (getenv("VNC_PORT"))
 		VNC_PORT = atoi(getenv("VNC_PORT"));
+	
+	L("AML-VNC Server v%d.%d.%d", MAIN_VERSION_MAJOR, MAIN_VERSION_MINOR, MAIN_VERSION_PATCH);
+	if (MAIN_VERSION_BETA != 0)
+		L(" Beta %d", MAIN_VERSION_BETA);
+	L(" (Release date: %s)\n", MAIN_VERSION_DATE);
 	
 	if(argc > 1) {
 		int i = 1;

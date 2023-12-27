@@ -1,0 +1,11 @@
+#ifndef VERSION_H
+#define VERSION_H
+
+#define MAIN_VERSION_MAJOR 1
+#define MAIN_VERSION_MINOR 1
+#define MAIN_VERSION_PATCH 0
+
+#define MAIN_VERSION_BETA 1
+#define MAIN_VERSION_DATE "2023-12-26"
+
+#endif
