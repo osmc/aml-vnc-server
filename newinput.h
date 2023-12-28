@@ -21,10 +21,10 @@
 #define WHEEL_UP_MASK 0x8
 #define WHEEL_DOWN_MASK 0x10
 
-void initVirtKbd();
-void initVirtPtr();
-void closeVirtKbd();
-void closeVirtPtr();
+void initVirtKbd(void);
+void initVirtPtr(void);
+void closeVirtKbd(void);
+void closeVirtPtr(void);
 void writeEvent(int udev, __u16 type, __u16 code, __s32 value);
 int keysym2scancode(rfbKeySym key);
 void dokey(rfbBool down, rfbKeySym key, rfbClientPtr cl);

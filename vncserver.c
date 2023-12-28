@@ -29,11 +29,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <rfb/keysym.h>
 
 #include <time.h>
+#include <signal.h>
 
 #define CONCAT2(a,b) a##b
 #define CONCAT2E(a,b) CONCAT2(a,b)
 #define CONCAT3(a,b,c) a##b##c
 #define CONCAT3E(a,b,c) CONCAT3(a,b,c)
+
+int update_loop = 1;
 
 char VNC_SERVERNAME[256] = "AML-VNC";
 char VNC_PASSWORD[256] = "";
@@ -50,7 +53,7 @@ uint32_t standby = 1;
 char *rhost = NULL;
 int rport = 5500;
 
-void (*update_screen)(void) = NULL;
+void (*updateScreen)(void) = NULL;
 
 #define OUT 32
 #include "updateScreen.c"
@@ -66,62 +69,7 @@ ClientGoneHookPtr clientGone(rfbClientPtr cl) {
 
 rfbNewClientHookPtr clientHook(rfbClientPtr cl) {
 	cl->clientGoneHook=(ClientGoneHookPtr)clientGone;
-	
 	return RFB_CLIENT_ACCEPT;
-}
-
-void initServer(int argc, char **argv) {
-	vncbuf = calloc(screenformat.width * screenformat.height, screenformat.bitsPerPixel / CHAR_BIT);
-	
-	assert(vncbuf != NULL);
-	
-	vncscr = rfbGetScreen(&argc, argv, screenformat.width, screenformat.height, 0 /* not used */ , 3,  screenformat.bitsPerPixel / CHAR_BIT);
-	
-	assert(vncscr != NULL);
-	
-	vncscr->desktopName = VNC_SERVERNAME;
-	vncscr->frameBuffer =(char *)vncbuf;
-	vncscr->port = VNC_PORT;
-	vncscr->ipv6port = VNC_PORT;
-	vncscr->kbdAddEvent = dokey;
-	vncscr->ptrAddEvent = doptr;
-	vncscr->newClientHook = (rfbNewClientHookPtr)clientHook;
-	
-	if (strcmp(VNC_PASSWORD, "") != 0) {
-		char **passwords = (char **)malloc(2 * sizeof(char **));
-		passwords[0] = VNC_PASSWORD;
-		passwords[1] = NULL;
-		vncscr->authPasswdData = passwords;
-		vncscr->passwordCheck = rfbCheckPasswordByList;
-	}
-	
-	vncscr->serverFormat.redShift = screenformat.redShift;
-	vncscr->serverFormat.greenShift = screenformat.greenShift;
-	vncscr->serverFormat.blueShift = screenformat.blueShift;
-	
-	vncscr->serverFormat.redMax = (( 1 << screenformat.redMax) -1);
-	vncscr->serverFormat.greenMax = (( 1 << screenformat.greenMax) -1);
-	vncscr->serverFormat.blueMax = (( 1 << screenformat.blueMax) -1);
-	
-	vncscr->serverFormat.trueColour = TRUE;
-	vncscr->serverFormat.bitsPerPixel = screenformat.bitsPerPixel;
-	
-	vncscr->alwaysShared = TRUE;
-	
-	rfbInitServer(vncscr);
-	
-	update_screen = update_screen_32;
-	
-	/* Mark as dirty since we haven't sent any updates at all yet. */
-	rfbMarkRectAsModified(vncscr, 0, 0, vncscr->width, vncscr->height);
-}
-
-void close_app() {
-	L("Cleaning up...\n");
-	closeFB();
-	closeVirtKbd();
-	closeVirtPtr();
-	exit(0); /* normal exit status */
 }
 
 void extractReverseHostPort(char *str) {
@@ -135,7 +83,7 @@ void extractReverseHostPort(char *str) {
 	}
 	strncpy(rhost, str, len);
 	rhost[len] = '\0';
-	
+
 	/* Extract port, if any */
 	if ((p = strrchr(rhost, ':')) != NULL) {
 		rport = atoi(p + 1);
@@ -147,6 +95,78 @@ void extractReverseHostPort(char *str) {
 		}
 		*p = '\0';
 	}
+}
+
+void initReverseConnection(void) {
+	rfbClientPtr cl;
+	cl = rfbReverseConnection(vncscr, rhost, rport);
+	if (cl == NULL) {
+		char *str = malloc(255 * sizeof(char));
+		L(" Couldn't connect to remote host: %s\n",rhost);
+		free(str);
+	} else {
+		cl->onHold = FALSE;
+		rfbStartOnHoldClient(cl);
+	}
+}
+
+void initServer(int argc, char **argv) {
+	L("-- Initializing VNC server --\n");
+	L(" Screen resolution: %dx%d, bit depth: %d bpp.\n",
+		(int)screenformat.width, (int)screenformat.height, (int)screenformat.bitsPerPixel);
+	L(" RGBA colormap: %d:%d:%d, length: %d:%d:%d.\n",
+		screenformat.redShift, screenformat.greenShift, screenformat.blueShift,
+		screenformat.redMax, screenformat.greenMax, screenformat.blueMax);
+
+	vncbuf = calloc(screenformat.width * screenformat.height, screenformat.bitsPerPixel / CHAR_BIT);
+	assert(vncbuf != NULL);
+
+	vncscr = rfbGetScreen(&argc, argv, screenformat.width, screenformat.height, 0 /* not used */ , 3,  screenformat.bitsPerPixel / CHAR_BIT);
+	assert(vncscr != NULL);
+
+	vncscr->desktopName = VNC_SERVERNAME;
+	vncscr->frameBuffer = (char *)vncbuf;
+	vncscr->port = VNC_PORT;
+	vncscr->ipv6port = VNC_PORT;
+	vncscr->kbdAddEvent = dokey;
+	vncscr->ptrAddEvent = doptr;
+	vncscr->newClientHook = (rfbNewClientHookPtr)clientHook;
+
+	if (strcmp(VNC_PASSWORD, "") != 0) {
+		char **passwords = (char **)malloc(2 * sizeof(char **));
+		passwords[0] = VNC_PASSWORD;
+		passwords[1] = NULL;
+		vncscr->authPasswdData = passwords;
+		vncscr->passwordCheck = rfbCheckPasswordByList;
+	}
+
+	vncscr->serverFormat.redShift = screenformat.redShift;
+	vncscr->serverFormat.greenShift = screenformat.greenShift;
+	vncscr->serverFormat.blueShift = screenformat.blueShift;
+
+	vncscr->serverFormat.redMax = (( 1 << screenformat.redMax) -1);
+	vncscr->serverFormat.greenMax = (( 1 << screenformat.greenMax) -1);
+	vncscr->serverFormat.blueMax = (( 1 << screenformat.blueMax) -1);
+
+	vncscr->serverFormat.trueColour = TRUE;
+	vncscr->serverFormat.bitsPerPixel = screenformat.bitsPerPixel;
+
+	vncscr->alwaysShared = TRUE;
+
+	L("-- Starting the server --\n");
+	rfbInitServer(vncscr);
+
+	if (rhost)
+		initReverseConnection();
+
+	updateScreen = update_screen_32;
+
+	/* Mark as dirty since we haven't sent any updates at all yet. */
+	rfbMarkRectAsModified(vncscr, 0, 0, vncscr->width, vncscr->height);
+}
+
+void sigHandler() {
+	update_loop = 0;
 }
 
 void printUsage(char *str) {
@@ -162,10 +182,10 @@ void printUsage(char *str) {
 
 int main(int argc, char **argv) {
 	long usec;
-	
+
 	// Set the default server name based on the hostname
 	gethostname(VNC_SERVERNAME, sizeof(VNC_SERVERNAME));
-	
+
 	// Preset values from environment variables (However, the values specified in the arguments have priority.)
 	if (getenv("VNC_SERVERNAME"))
 		strcpy(VNC_SERVERNAME, getenv("VNC_SERVERNAME"));
@@ -173,12 +193,12 @@ int main(int argc, char **argv) {
 		strcpy(VNC_PASSWORD, getenv("VNC_PASSWORD"));
 	if (getenv("VNC_PORT"))
 		VNC_PORT = atoi(getenv("VNC_PORT"));
-	
+
 	L("AML-VNC Server v%d.%d.%d", MAIN_VERSION_MAJOR, MAIN_VERSION_MINOR, MAIN_VERSION_PATCH);
 	if (MAIN_VERSION_BETA != 0)
 		L(" Beta %d", MAIN_VERSION_BETA);
 	L(" (Release date: %s)\n", MAIN_VERSION_DATE);
-	
+
 	if(argc > 1) {
 		int i = 1;
 		while(i < argc) {
@@ -213,59 +233,49 @@ int main(int argc, char **argv) {
 		i++;
 		}
 	}
-	
 
-	L("Initializing grabber method...\n");
+	// Start initialization
 	initFB();
-	
-	L("Initializing virtual keyboard...\n");
 	initVirtKbd();
-	
-	L("Initializing virtual pointer...\n");
 	initVirtPtr();
-	
-	L("Initializing VNC server:\n");
-	L("	width:  %d\n", (int)screenformat.width);
-	L("	height: %d\n", (int)screenformat.height);
-	L("	bpp:    %d\n", (int)screenformat.bitsPerPixel);
-	L("	port:   %d\n", (int)VNC_PORT);
-	
-	L("Colourmap_rgba=%d:%d:%d    length=%d:%d:%d\n", screenformat.redShift, screenformat.greenShift, screenformat.blueShift,
-		screenformat.redMax, screenformat.greenMax, screenformat.blueMax);
-	
 	initServer(argc, argv);
-	
-	if (rhost) {
-		rfbClientPtr cl;
-		cl = rfbReverseConnection(vncscr, rhost, rport);
-		if (cl == NULL) {
-			char *str = malloc(255 * sizeof(char));
-			L("Couldn't connect to remote host: %s\n",rhost);
-			free(str);
-		}
-		else {
-			cl->onHold = FALSE;
-			rfbStartOnHoldClient(cl);
-		}
-	}
-	
-	while (1) {
+
+	signal(SIGINT, sigHandler);
+
+	// Start the update loop
+	while (update_loop) {
 		usec = (vncscr->deferUpdateTime + standby) * 1000;
 		rfbProcessEvents(vncscr, usec);
 		if (idle)
 			standby = 100;
 		else
 			standby = 10;
-		
+
 		if (vncscr->clientHead != NULL) {
 			if (!checkResChange()) {
-				update_screen();
+				updateScreen();
 			} else {
-				L("Screen resolution changed, server connection will be closed.\n");
-				close_app();
+				L("-- Screen resolution changed, reinitialization started --\n");
+				rfbShutdownServer(vncscr, TRUE);
+				free(vncscr->frameBuffer);
+				rfbScreenCleanup(vncscr);
+				closeVirtPtr();
+				initVirtPtr();
+				initServer(argc, argv);
 			}
 		}
 	}
-	
-	close_app();
+
+	// VNC server shutdown
+	L("-- Shutting down the server --\n");
+	rfbShutdownServer(vncscr, TRUE);
+	free(vncscr->frameBuffer);
+	rfbScreenCleanup(vncscr);
+
+	L("-- Cleaning up --\n");
+	closeFB();
+	closeVirtKbd();
+	closeVirtPtr();
+
+	return 0;
 }

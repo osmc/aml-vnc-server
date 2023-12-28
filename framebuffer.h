@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 int initFB(void);
 void closeFB(void);
 int checkResChange(void);
+void fillScreenValues(void);
 unsigned int *readBufferFB(void);
 void FB_setDevice(char *);
 struct fb_var_screeninfo FB_getscrinfo(void);

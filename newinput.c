@@ -28,17 +28,17 @@ bool down_keys[KEY_CNT];
 int mouse_x, mouse_y;
 int mouse_button = 0;
 
-void initVirtKbd() {
+void initVirtKbd(void) {
 	struct uinput_user_dev uinp;
 	int retcode, i;
 
 	memset(down_keys, 0, sizeof(down_keys));
 
-	ukbd = open("/dev/uinput", O_WRONLY | O_NDELAY );
-	printf("open /dev/uinput returned %d.\n", ukbd);
+	L("-- Initializing virtual keyboard device --\n");
 
+	ukbd = open("/dev/uinput", O_WRONLY | O_NDELAY );
 	if (ukbd == 0) {
-		printf("Could not open uinput.\n");
+		L(" Could not open '/dev/uinput'.\n");
 		exit(-1);
 	}
 
@@ -54,27 +54,26 @@ void initVirtKbd() {
 		ioctl(ukbd, UI_SET_KEYBIT, i);
 	}
 
-	retcode = write(ukbd, &uinp, sizeof(uinp));
-	printf("First write returned %d.\n", retcode);
+	write(ukbd, &uinp, sizeof(uinp));
 
 	retcode = (ioctl(ukbd, UI_DEV_CREATE));
-	printf("ioctl UI_DEV_CREATE returned %d.\n", retcode);
-
 	if (retcode) {
-		printf("Error create uinput device %d.\n", retcode);
+		L(" Error create virtual keyboard device.\n");
 		exit(-1);
+	} else {
+		L(" The virtual keyboard device has been created.\n");
 	}
 }
 
-void initVirtPtr() {
+void initVirtPtr(void) {
 	struct uinput_user_dev uinp;
-	int retcode, i;
+	int retcode;
+
+	L("-- Initializing virtual pointer device --\n");
 
 	uptr = open("/dev/uinput", O_WRONLY | O_NDELAY );
-	printf("open /dev/uinput returned %d.\n", uptr);
-
 	if (uptr == 0) {
-		printf("Could not open uinput.\n");
+		L(" Could not open '/dev/uinput'.\n");
 		exit(-1);
 	}
 
@@ -102,26 +101,27 @@ void initVirtPtr() {
 	uinp.absmin[ABS_Y] = 0;
 	uinp.absmax[ABS_Y] = screenformat.height - 1;
 
-	retcode = write(uptr, &uinp, sizeof(uinp));
-	printf("First write returned %d.\n", retcode);
+	write(uptr, &uinp, sizeof(uinp));
 
 	retcode = (ioctl(uptr, UI_DEV_CREATE));
-	printf("ioctl UI_DEV_CREATE returned %d.\n", retcode);
-
 	if (retcode) {
-		printf("Error create uinput device %d.\n", retcode);
+		L(" Error create virtual pointer device.\n");
 		exit(-1);
+	} else {
+		L(" The virtual pointer device has been created.\n");
 	}
 }
 
-void closeVirtKbd() {
+void closeVirtKbd(void) {
 	ioctl(ukbd, UI_DEV_DESTROY);
 	close(ukbd);
+	L(" The virtual keyboard device has been deleted.\n");
 }
 
-void closeVirtPtr() {
+void closeVirtPtr(void) {
 	ioctl(uptr, UI_DEV_DESTROY);
 	close(uptr);
+	L(" The virtual pointer device has been deleted.\n");
 }
 
 void writeEvent(int udev, __u16 type, __u16 code, __s32 value) {
@@ -138,7 +138,7 @@ int keysym2scancode(rfbKeySym key) {
 	int scancode = 0;
 	int code = (int) key;
 
-	//printf("DEBUG -> Keyboard keysim code: %04X.\n", key);
+	//L("DEBUG -> Keyboard keysim code: %04X.\n", key);
 
 	if (code>='0' && code<='9') {
 		scancode = (code & 0xF) - 1;
@@ -263,7 +263,7 @@ void dokey(rfbBool down, rfbKeySym key, rfbClientPtr cl) {
 }
 
 void doptr(int buttonMask, int x, int y, rfbClientPtr cl) {
-	//printf("DEBUG -> Mouse button mask: 0x%x, remote cursor position: X=%d, Y=%d.\n", buttonMask, x,y);
+	//L("DEBUG -> Mouse button mask: 0x%x, remote cursor position: X=%d, Y=%d.\n", buttonMask, x,y);
 
 	// Mouse buttons and scroll events
 	if (mouse_button != buttonMask) {

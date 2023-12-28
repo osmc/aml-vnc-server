@@ -47,12 +47,16 @@ void FUNCTION(void) {
 	height = vncscr->height;
 
 	// Set the pixel grid slip (depends on the resolution)
-	if (height <= 540) {
+	if (height < 540) {
 		slip = 2;
-	} else if (height > 540 && height < 1080) {
+	} else if (height >= 540 && height < 720) {
 		slip = 3;
-	} else {
+	} else if (height >= 720 && height < 1080) {
 		slip = 4;
+	} else if (height >= 1080 && height < 1440) {
+		slip = 5;
+	} else {
+		slip = 6;
 	}
 
 	// Set the inline pixel step
