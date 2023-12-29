@@ -21,14 +21,14 @@
 #define WHEEL_UP_MASK 0x8
 #define WHEEL_DOWN_MASK 0x10
 
-void initVirtKbd(void);
-void initVirtPtr(void);
-void closeVirtKbd(void);
-void closeVirtPtr(void);
+void initVirtualKeyboard(void);
+void initVirtualPointer(void);
+void closeVirtualKeyboard(void);
+void closeVirtualPointer(void);
 void writeEvent(int udev, __u16 type, __u16 code, __s32 value);
-int keysym2scancode(rfbKeySym key);
-void dokey(rfbBool down, rfbKeySym key, rfbClientPtr cl);
-void doptr(int buttonMask, int x, int y, rfbClientPtr cl);
+int keySym2Scancode(rfbKeySym key);
+void addKeyboardEvent(rfbBool down, rfbKeySym key, rfbClientPtr cl);
+void addPointerEvent(int buttonMask, int x, int y, rfbClientPtr cl);
 
 #endif
 

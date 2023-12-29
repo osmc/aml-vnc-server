@@ -38,8 +38,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 int update_loop = 1;
 
-char VNC_SERVERNAME[256] = "AML-VNC";
-char VNC_PASSWORD[256] = "";
+char VNC_SERVERNAME[256];
+char VNC_PASSWORD[256];
 int VNC_PORT = 5900;
 
 unsigned int *vncbuf;
@@ -58,10 +58,6 @@ void (*updateScreen)(void) = NULL;
 #define OUT 32
 #include "updateScreen.c"
 #undef OUT
-
-void setIdle(int i) {
-	idle=i;
-}
 
 ClientGoneHookPtr clientGone(rfbClientPtr cl) {
 	return 0;
@@ -128,8 +124,8 @@ void initServer(int argc, char **argv) {
 	vncscr->frameBuffer = (char *)vncbuf;
 	vncscr->port = VNC_PORT;
 	vncscr->ipv6port = VNC_PORT;
-	vncscr->kbdAddEvent = dokey;
-	vncscr->ptrAddEvent = doptr;
+	vncscr->kbdAddEvent = addKeyboardEvent;
+	vncscr->ptrAddEvent = addPointerEvent;
 	vncscr->newClientHook = (rfbNewClientHookPtr)clientHook;
 
 	if (strcmp(VNC_PASSWORD, "") != 0) {
@@ -218,7 +214,7 @@ int main(int argc, char **argv) {
 						break;
 					case 'f':
 						i++;
-						FB_setDevice(argv[i]);
+						setFrameBufferDevice(argv[i]);
 						break;
 					case 'P':
 						i++;
@@ -235,9 +231,9 @@ int main(int argc, char **argv) {
 	}
 
 	// Start initialization
-	initFB();
-	initVirtKbd();
-	initVirtPtr();
+	initFrameBuffer();
+	initVirtualKeyboard();
+	initVirtualPointer();
 	initServer(argc, argv);
 
 	signal(SIGINT, sigHandler);
@@ -252,15 +248,15 @@ int main(int argc, char **argv) {
 			standby = 10;
 
 		if (vncscr->clientHead != NULL) {
-			if (!checkResChange()) {
+			if (!checkResolutionChange()) {
 				updateScreen();
 			} else {
 				L("-- Screen resolution changed, reinitialization started --\n");
 				rfbShutdownServer(vncscr, TRUE);
 				free(vncscr->frameBuffer);
 				rfbScreenCleanup(vncscr);
-				closeVirtPtr();
-				initVirtPtr();
+				closeVirtualPointer();
+				initVirtualPointer();
 				initServer(argc, argv);
 			}
 		}
@@ -273,9 +269,9 @@ int main(int argc, char **argv) {
 	rfbScreenCleanup(vncscr);
 
 	L("-- Cleaning up --\n");
-	closeFB();
-	closeVirtKbd();
-	closeVirtPtr();
+	closeFrameBuffer();
+	closeVirtualKeyboard();
+	closeVirtualPointer();
 
 	return 0;
 }

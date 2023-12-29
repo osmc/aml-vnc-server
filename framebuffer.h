@@ -25,12 +25,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "common.h"
 
-int initFB(void);
-void closeFB(void);
-int checkResChange(void);
+void setFrameBufferDevice(char *s);
+void updateFrameBufferInfo(void);
+int roundUpToPageSize(int x);
+int initFrameBuffer(void);
+void closeFrameBuffer(void);
+int checkResolutionChange(void);
 void fillScreenValues(void);
-unsigned int *readBufferFB(void);
-void FB_setDevice(char *);
 struct fb_var_screeninfo FB_getscrinfo(void);
+unsigned int *readBufferFB(void);
 
 #endif

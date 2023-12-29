@@ -23,40 +23,40 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "newinput.h"
 
-int ukbd, uptr;
+int virt_kbd, virt_ptr;
 bool down_keys[KEY_CNT];
 int mouse_x, mouse_y;
 int mouse_button = 0;
 
-void initVirtKbd(void) {
-	struct uinput_user_dev uinp;
+void initVirtualKeyboard(void) {
+	struct uinput_user_dev uinp_dev;
 	int retcode, i;
 
 	memset(down_keys, 0, sizeof(down_keys));
 
 	L("-- Initializing virtual keyboard device --\n");
 
-	ukbd = open("/dev/uinput", O_WRONLY | O_NDELAY );
-	if (ukbd == 0) {
+	virt_kbd = open("/dev/uinput", O_WRONLY | O_NDELAY );
+	if (virt_kbd == 0) {
 		L(" Could not open '/dev/uinput'.\n");
 		exit(-1);
 	}
 
-	memset(&uinp, 0, sizeof(uinp));
-	strncpy(uinp.name, "VNC virtual keyboard", 20);
-	uinp.id.version = 4;
-	uinp.id.bustype = BUS_USB;
+	memset(&uinp_dev, 0, sizeof(uinp_dev));
+	strncpy(uinp_dev.name, "VNC virtual keyboard", 20);
+	uinp_dev.id.version = 4;
+	uinp_dev.id.bustype = BUS_USB;
 
-	ioctl(ukbd, UI_SET_EVBIT, EV_SYN);
-	ioctl(ukbd, UI_SET_EVBIT, EV_KEY);
+	ioctl(virt_kbd, UI_SET_EVBIT, EV_SYN);
+	ioctl(virt_kbd, UI_SET_EVBIT, EV_KEY);
 
 	for (i=0; i<KEY_MAX; i++) {
-		ioctl(ukbd, UI_SET_KEYBIT, i);
+		ioctl(virt_kbd, UI_SET_KEYBIT, i);
 	}
 
-	write(ukbd, &uinp, sizeof(uinp));
+	write(virt_kbd, &uinp_dev, sizeof(uinp_dev));
 
-	retcode = (ioctl(ukbd, UI_DEV_CREATE));
+	retcode = (ioctl(virt_kbd, UI_DEV_CREATE));
 	if (retcode) {
 		L(" Error create virtual keyboard device.\n");
 		exit(-1);
@@ -65,45 +65,45 @@ void initVirtKbd(void) {
 	}
 }
 
-void initVirtPtr(void) {
-	struct uinput_user_dev uinp;
+void initVirtualPointer(void) {
+	struct uinput_user_dev uinp_dev;
 	int retcode;
 
 	L("-- Initializing virtual pointer device --\n");
 
-	uptr = open("/dev/uinput", O_WRONLY | O_NDELAY );
-	if (uptr == 0) {
+	virt_ptr = open("/dev/uinput", O_WRONLY | O_NDELAY );
+	if (virt_ptr == 0) {
 		L(" Could not open '/dev/uinput'.\n");
 		exit(-1);
 	}
 
-	memset(&uinp, 0, sizeof(uinp));
-	strncpy(uinp.name, "VNC virtual pointer", 20);
-	uinp.id.version = 1;
-	uinp.id.bustype = BUS_USB;
+	memset(&uinp_dev, 0, sizeof(uinp_dev));
+	strncpy(uinp_dev.name, "VNC virtual pointer", 20);
+	uinp_dev.id.version = 1;
+	uinp_dev.id.bustype = BUS_USB;
 
-	ioctl(uptr, UI_SET_EVBIT, EV_SYN);
-	ioctl(uptr, UI_SET_EVBIT, EV_KEY);
-	ioctl(uptr, UI_SET_EVBIT, EV_REL);
-	ioctl(uptr, UI_SET_EVBIT, EV_ABS);
+	ioctl(virt_ptr, UI_SET_EVBIT, EV_SYN);
+	ioctl(virt_ptr, UI_SET_EVBIT, EV_KEY);
+	ioctl(virt_ptr, UI_SET_EVBIT, EV_REL);
+	ioctl(virt_ptr, UI_SET_EVBIT, EV_ABS);
 
-	ioctl(uptr, UI_SET_KEYBIT, BTN_LEFT);
-	ioctl(uptr, UI_SET_KEYBIT, BTN_RIGHT);
-	ioctl(uptr, UI_SET_KEYBIT, BTN_MIDDLE);
+	ioctl(virt_ptr, UI_SET_KEYBIT, BTN_LEFT);
+	ioctl(virt_ptr, UI_SET_KEYBIT, BTN_RIGHT);
+	ioctl(virt_ptr, UI_SET_KEYBIT, BTN_MIDDLE);
 
-	ioctl(uptr, UI_SET_RELBIT, REL_WHEEL);
+	ioctl(virt_ptr, UI_SET_RELBIT, REL_WHEEL);
 
-	ioctl(uptr, UI_SET_ABSBIT, ABS_X);
-	ioctl(uptr, UI_SET_ABSBIT, ABS_Y);
+	ioctl(virt_ptr, UI_SET_ABSBIT, ABS_X);
+	ioctl(virt_ptr, UI_SET_ABSBIT, ABS_Y);
 
-	uinp.absmin[ABS_X] = 0;
-	uinp.absmax[ABS_X] = screenformat.width - 1;
-	uinp.absmin[ABS_Y] = 0;
-	uinp.absmax[ABS_Y] = screenformat.height - 1;
+	uinp_dev.absmin[ABS_X] = 0;
+	uinp_dev.absmax[ABS_X] = screenformat.width - 1;
+	uinp_dev.absmin[ABS_Y] = 0;
+	uinp_dev.absmax[ABS_Y] = screenformat.height - 1;
 
-	write(uptr, &uinp, sizeof(uinp));
+	write(virt_ptr, &uinp_dev, sizeof(uinp_dev));
 
-	retcode = (ioctl(uptr, UI_DEV_CREATE));
+	retcode = (ioctl(virt_ptr, UI_DEV_CREATE));
 	if (retcode) {
 		L(" Error create virtual pointer device.\n");
 		exit(-1);
@@ -112,15 +112,15 @@ void initVirtPtr(void) {
 	}
 }
 
-void closeVirtKbd(void) {
-	ioctl(ukbd, UI_DEV_DESTROY);
-	close(ukbd);
+void closeVirtualKeyboard(void) {
+	ioctl(virt_kbd, UI_DEV_DESTROY);
+	close(virt_kbd);
 	L(" The virtual keyboard device has been deleted.\n");
 }
 
-void closeVirtPtr(void) {
-	ioctl(uptr, UI_DEV_DESTROY);
-	close(uptr);
+void closeVirtualPointer(void) {
+	ioctl(virt_ptr, UI_DEV_DESTROY);
+	close(virt_ptr);
 	L(" The virtual pointer device has been deleted.\n");
 }
 
@@ -134,7 +134,7 @@ void writeEvent(int udev, __u16 type, __u16 code, __s32 value) {
 	write(udev, &event, sizeof(event));
 }
 
-int keysym2scancode(rfbKeySym key) {
+int keySym2Scancode(rfbKeySym key) {
 	int scancode = 0;
 	int code = (int) key;
 
@@ -244,25 +244,25 @@ int keysym2scancode(rfbKeySym key) {
 	return scancode;
 }
 
-void dokey(rfbBool down, rfbKeySym key, rfbClientPtr cl) {
-	int scancode = keysym2scancode(key);
+void addKeyboardEvent(rfbBool down, rfbKeySym key, rfbClientPtr cl) {
+	int scancode = keySym2Scancode(key);
 	bool was_down = down_keys[scancode];
 
 	// Key press event
 	if(down) {
-		writeEvent(ukbd, EV_KEY, scancode, was_down ? 2 : 1); // Key repeat/press
-		writeEvent(ukbd, EV_SYN, SYN_REPORT, 0); // Synchronization
+		writeEvent(virt_kbd, EV_KEY, scancode, was_down ? 2 : 1); // Key repeat/press
+		writeEvent(virt_kbd, EV_SYN, SYN_REPORT, 0); // Synchronization
 		down_keys[scancode] = true;
 
 	// Key release event
 	} else {
-		writeEvent(ukbd, EV_KEY, scancode, 0); // Key release
-		writeEvent(ukbd, EV_SYN, SYN_REPORT, 0); // Synchronization
+		writeEvent(virt_kbd, EV_KEY, scancode, 0); // Key release
+		writeEvent(virt_kbd, EV_SYN, SYN_REPORT, 0); // Synchronization
 		down_keys[scancode] = false;
 	}
 }
 
-void doptr(int buttonMask, int x, int y, rfbClientPtr cl) {
+void addPointerEvent(int buttonMask, int x, int y, rfbClientPtr cl) {
 	//L("DEBUG -> Mouse button mask: 0x%x, remote cursor position: X=%d, Y=%d.\n", buttonMask, x,y);
 
 	// Mouse buttons and scroll events
@@ -270,27 +270,27 @@ void doptr(int buttonMask, int x, int y, rfbClientPtr cl) {
 
 		// Left button
 		if ((mouse_button & BTN_LEFT_MASK) != (buttonMask & BTN_LEFT_MASK)) {
-			writeEvent(uptr, EV_KEY, BTN_LEFT, buttonMask & BTN_LEFT_MASK);
+			writeEvent(virt_ptr, EV_KEY, BTN_LEFT, buttonMask & BTN_LEFT_MASK);
 		}
 
 		// Middle button
 		if ((mouse_button & BTN_MIDDLE_MASK) != (buttonMask & BTN_MIDDLE_MASK)) {
-			writeEvent(uptr, EV_KEY, BTN_MIDDLE, buttonMask & BTN_MIDDLE_MASK);
+			writeEvent(virt_ptr, EV_KEY, BTN_MIDDLE, buttonMask & BTN_MIDDLE_MASK);
 		}
 
 		// Right button
 		if ((mouse_button & BTN_RIGHT_MASK) != (buttonMask & BTN_RIGHT_MASK)) {
-			writeEvent(uptr, EV_KEY, BTN_RIGHT, buttonMask & BTN_RIGHT_MASK);
+			writeEvent(virt_ptr, EV_KEY, BTN_RIGHT, buttonMask & BTN_RIGHT_MASK);
 		}
 
 		// Wheel up
 		if ((mouse_button & WHEEL_UP_MASK) != (buttonMask & WHEEL_UP_MASK)) {
-			writeEvent(uptr, EV_REL, REL_WHEEL, BTN_LEFT_MASK);
+			writeEvent(virt_ptr, EV_REL, REL_WHEEL, BTN_LEFT_MASK);
 		}
 
 		// Wheel down
 		if ((mouse_button & WHEEL_DOWN_MASK) != (buttonMask & WHEEL_DOWN_MASK)) {
-			writeEvent(uptr, EV_REL, REL_WHEEL, -BTN_RIGHT_MASK);
+			writeEvent(virt_ptr, EV_REL, REL_WHEEL, -BTN_RIGHT_MASK);
 		}
 
 		// Set the current state as the last button state
@@ -298,8 +298,8 @@ void doptr(int buttonMask, int x, int y, rfbClientPtr cl) {
 
 		// Mouse movements -> To minimize CPU load only update the cursor on server side when mouse interaction occurs.
 		if (mouse_x != x || mouse_y != y) {
-			writeEvent(uptr, EV_ABS, ABS_X, x); // X-axis
-			writeEvent(uptr, EV_ABS, ABS_Y, y); // Y-axis
+			writeEvent(virt_ptr, EV_ABS, ABS_X, x); // X-axis
+			writeEvent(virt_ptr, EV_ABS, ABS_Y, y); // Y-axis
 
 			// Set the current position as the last position
 			mouse_x = x;
@@ -307,6 +307,6 @@ void doptr(int buttonMask, int x, int y, rfbClientPtr cl) {
 		}
 
 		// Synchronization
-		writeEvent(uptr, EV_SYN, SYN_REPORT, 0);
+		writeEvent(virt_ptr, EV_SYN, SYN_REPORT, 0);
 	}
 }

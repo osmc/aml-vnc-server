@@ -38,11 +38,11 @@ int roundUpToPageSize(int x);
 struct fb_var_screeninfo scrinfo;
 struct fb_fix_screeninfo fscrinfo;
 
-void FB_setDevice(char *s) {
+void setFrameBufferDevice(char *s) {
 	strcpy(framebuffer_device,s);
 }
 
-void update_fb_info(void) {
+void updateFrameBufferInfo(void) {
 	if (ioctl(fbfd, FBIOGET_VSCREENINFO, &scrinfo) != 0) {
 		L(" 'ioctl' error!\n");
 		exit(EXIT_FAILURE);
@@ -53,7 +53,7 @@ inline int roundUpToPageSize(int x) {
 	return (x + (sysconf(_SC_PAGESIZE)-1)) & ~(sysconf(_SC_PAGESIZE)-1);
 }
 
-int initFB(void) {
+int initFrameBuffer(void) {
 	L("-- Initializing framebuffer device --\n");
 
 	fbmmap = MAP_FAILED;
@@ -65,7 +65,7 @@ int initFB(void) {
 		L(" The framebuffer device has been attached.\n");
 	}
 
-	update_fb_info();
+	updateFrameBufferInfo();
 
 	if (ioctl(fbfd, FBIOGET_FSCREENINFO, &fscrinfo) != 0) {
 		L(" 'ioctl' error!\n");
@@ -96,7 +96,13 @@ int initFB(void) {
 	return 1;
 }
 
-int checkResChange(void) {
+void closeFrameBuffer(void) {
+	if(fbfd != -1)
+	close(fbfd);
+	L(" The framebuffer device has been detached.\n");
+}
+
+int checkResolutionChange(void) {
 	if ((scrinfo.xres != screenformat.width) || (scrinfo.yres != screenformat.height)) {
 		fillScreenValues();
 		return 1;
@@ -118,17 +124,11 @@ void fillScreenValues(void) {
 	screenformat.blueMax = scrinfo.blue.length;
 }
 
-void closeFB(void) {
-	if(fbfd != -1)
-	close(fbfd);
-	L(" The framebuffer device has been detached.\n");
-}
-
 struct fb_var_screeninfo FB_getscrinfo(void) {
 	return scrinfo;
 }
 
 unsigned int *readBufferFB(void) {
-	update_fb_info();
+	updateFrameBufferInfo();
 	return fbmmap;
 }

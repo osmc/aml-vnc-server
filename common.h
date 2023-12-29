@@ -72,11 +72,6 @@ typedef int (*close_fn_type)(void);
 typedef unsigned char * (*readfb_fn_type)(void);
 typedef screenFormat (*getscreenformat_fn_type)(void);
 
-void rotate(int);
-int getCurrentRotation();
-int isIdle();
-void setIdle(int i);
-void close_app();
 extern screenFormat screenformat;
 
 #define ARR_LEN(a) (sizeof(a)/sizeof(a)[0])
