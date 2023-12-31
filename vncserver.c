@@ -184,9 +184,9 @@ int main(int argc, char **argv) {
 
 	// Preset values from environment variables (However, the values specified in the arguments have priority.)
 	if (getenv("VNC_SERVERNAME"))
-		strcpy(VNC_SERVERNAME, getenv("VNC_SERVERNAME"));
+		snprintf(VNC_SERVERNAME, sizeof(VNC_SERVERNAME), "%s", getenv("VNC_SERVERNAME"));
 	if (getenv("VNC_PASSWORD"))
-		strcpy(VNC_PASSWORD, getenv("VNC_PASSWORD"));
+		snprintf(VNC_PASSWORD, sizeof(VNC_PASSWORD), "%s", getenv("VNC_PASSWORD"));
 	if (getenv("VNC_PORT"))
 		VNC_PORT = atoi(getenv("VNC_PORT"));
 
@@ -206,11 +206,11 @@ int main(int argc, char **argv) {
 						break;
 					case 'n':
 						i++;
-						strcpy(VNC_SERVERNAME,argv[i]);
+						snprintf(VNC_SERVERNAME, sizeof(VNC_SERVERNAME), "%s", argv[i]);
 						break;
 					case 'p':
 						i++;
-						strcpy(VNC_PASSWORD,argv[i]);
+						snprintf(VNC_PASSWORD, sizeof(VNC_PASSWORD), "%s", argv[i]);
 						break;
 					case 'f':
 						i++;
