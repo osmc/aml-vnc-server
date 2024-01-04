@@ -3,6 +3,7 @@ droid vnc server - Android VNC server
 Copyright (C) 2009 Jose Pereira <onaips@gmail.com>
 
 Modified for AML TV Boxes by kszaq <kszaquitto@gmail.com>
+Additional developments by dtech(.hu) <dee.gabor@gmail.com>
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -28,6 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include <unistd.h>
@@ -70,11 +72,6 @@ typedef int (*close_fn_type)(void);
 typedef unsigned char * (*readfb_fn_type)(void);
 typedef screenFormat (*getscreenformat_fn_type)(void);
 
-void rotate(int);
-int getCurrentRotation();
-int isIdle();
-void setIdle(int i);
-void close_app();
 extern screenFormat screenformat;
 
 #define ARR_LEN(a) (sizeof(a)/sizeof(a)[0])

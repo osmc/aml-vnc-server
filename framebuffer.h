@@ -3,6 +3,7 @@ droid VNC server  - a vnc server for android
 Copyright (C) 2011 Jose Pereira <onaips@gmail.com>
 
 Modified for AML TV Boxes by kszaq <kszaquitto@gmail.com>
+Additional developments by dtech(.hu) <dee.gabor@gmail.com>
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -24,10 +25,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "common.h"
 
-int initFB(void);
-void closeFB(void);
-unsigned int *readBufferFB(void);
-void FB_setDevice(char *);
+void setFrameBufferDevice(char *s);
+void updateFrameBufferInfo(void);
+int roundUpToPageSize(int x);
+int initFrameBuffer(void);
+void closeFrameBuffer(void);
+int checkResolutionChange(void);
+void fillScreenValues(void);
 struct fb_var_screeninfo FB_getscrinfo(void);
+unsigned int *readBufferFB(void);
 
 #endif
