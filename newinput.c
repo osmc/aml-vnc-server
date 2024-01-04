@@ -97,9 +97,9 @@ void initVirtualPointer(void) {
 	ioctl(virt_ptr, UI_SET_ABSBIT, ABS_Y);
 
 	uinp_dev.absmin[ABS_X] = 0;
-	uinp_dev.absmax[ABS_X] = screenformat.width - 1;
+	uinp_dev.absmax[ABS_X] = screenFormat.width - 1;
 	uinp_dev.absmin[ABS_Y] = 0;
-	uinp_dev.absmax[ABS_Y] = screenformat.height - 1;
+	uinp_dev.absmax[ABS_Y] = screenFormat.height - 1;
 
 	write(virt_ptr, &uinp_dev, sizeof(uinp_dev));
 

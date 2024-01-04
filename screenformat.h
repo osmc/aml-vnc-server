@@ -1,9 +1,9 @@
-#ifndef SCREEN_FORMAT_H
-#define SCREEN_FORMAT_H
+#ifndef SCREENFORMAT_H
+#define SCREENFORMAT_H
 
 #include <stdint.h>
 
-typedef struct _screenFormat {
+typedef struct _screenformat {
 	uint16_t width;
 	uint16_t height;
 
@@ -20,6 +20,6 @@ typedef struct _screenFormat {
 	uint32_t size;
 
 	uint32_t pad;
-} screenFormat;
+} screenformat;
 
 #endif
