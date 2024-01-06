@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "newinput.h"
 
 int virt_kbd, virt_ptr;
-bool down_keys[KEY_CNT];
+int down_keys[KEY_CNT];
 int mouse_x, mouse_y;
 int mouse_button = 0;
 
@@ -43,7 +43,7 @@ void initVirtualKeyboard(void) {
 	}
 
 	memset(&uinp_dev, 0, sizeof(uinp_dev));
-	strncpy(uinp_dev.name, "VNC virtual keyboard", 20);
+	snprintf(uinp_dev.name, UINPUT_MAX_NAME_SIZE, "VNC keysim device");
 	uinp_dev.id.version = 4;
 	uinp_dev.id.bustype = BUS_USB;
 
@@ -78,7 +78,7 @@ void initVirtualPointer(void) {
 	}
 
 	memset(&uinp_dev, 0, sizeof(uinp_dev));
-	strncpy(uinp_dev.name, "VNC virtual pointer", 20);
+	snprintf(uinp_dev.name, UINPUT_MAX_NAME_SIZE, "VNC virtual pointer");
 	uinp_dev.id.version = 1;
 	uinp_dev.id.bustype = BUS_USB;
 
@@ -246,19 +246,19 @@ int keySym2Scancode(rfbKeySym key) {
 
 void addKeyboardEvent(rfbBool down, rfbKeySym key, rfbClientPtr cl) {
 	int scancode = keySym2Scancode(key);
-	bool was_down = down_keys[scancode];
+	int was_down = down_keys[scancode];
 
 	// Key press event
 	if(down) {
 		writeEvent(virt_kbd, EV_KEY, scancode, was_down ? 2 : 1); // Key repeat/press
 		writeEvent(virt_kbd, EV_SYN, SYN_REPORT, 0); // Synchronization
-		down_keys[scancode] = true;
+		down_keys[scancode] = 1;
 
 	// Key release event
 	} else {
 		writeEvent(virt_kbd, EV_KEY, scancode, 0); // Key release
 		writeEvent(virt_kbd, EV_SYN, SYN_REPORT, 0); // Synchronization
-		down_keys[scancode] = false;
+		down_keys[scancode] = 0;
 	}
 }
 
@@ -298,8 +298,8 @@ void addPointerEvent(int buttonMask, int x, int y, rfbClientPtr cl) {
 
 		// Mouse movements -> To minimize CPU load only update the cursor on server side when mouse interaction occurs.
 		if (mouse_x != x || mouse_y != y) {
-			writeEvent(virt_ptr, EV_ABS, ABS_X, x); // X-axis
-			writeEvent(virt_ptr, EV_ABS, ABS_Y, y); // Y-axis
+			writeEvent(virt_ptr, EV_ABS, ABS_X, x); // X axis
+			writeEvent(virt_ptr, EV_ABS, ABS_Y, y); // Y axis
 
 			// Set the current position as the last position
 			mouse_x = x;

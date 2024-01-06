@@ -30,7 +30,7 @@ int updateScreen(int width, int height, int bpp) {
 	int x, y, slip, step, shift;
 	int vb_offset = 0, fb_offset = 0, px_offset = 0;
 	int max_x = -1, max_y = -1, min_x = 99999, min_y = 99999;
-	int idle = 1, stop = 0;
+	int idle = 1;
 
 	// Create buffers
 	uint32_t* fb = (uint32_t*)readFrameBuffer();

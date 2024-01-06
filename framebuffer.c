@@ -72,16 +72,16 @@ int initFrameBuffer(void) {
 	}
 
 	// Framebuffer debug information
-	/*
-	L(" line_length=%d xres=%d, yres=%d, xresv=%d, yresv=%d, xoffs=%d, yoffs=%d, bpp=%d\n",
-		(int)fixScreenInfo.line_length, (int)screenInfo.xres, (int)screenInfo.yres,
-		(int)screenInfo.xres_virtual, (int)screenInfo.yres_virtual,
-		(int)screenInfo.xoffset, (int)screenInfo.yoffset,
-		(int)screenInfo.bits_per_pixel);
-	*/
+	L(" Virtual width: %d, virtual height: %d.\n",
+		(int)screenInfo.xres_virtual, (int)screenInfo.yres_virtual);
+	L(" X axis offset: %d, Y axis offset: %d.\n",
+		(int)screenInfo.xoffset, (int)screenInfo.yoffset);
 
 	size_t size = screenInfo.yres_virtual;
 	size_t fbSize = roundUpToPageSize(fixScreenInfo.line_length * size);
+
+	L(" Line length: %d bytes, framebuffer size: %d bytes.\n",
+		(int)fixScreenInfo.line_length, (int)fbSize);
 
 	fbmmap = mmap(NULL, fbSize, PROT_READ, MAP_SHARED, fbfd, 0);
 

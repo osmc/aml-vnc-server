@@ -51,16 +51,15 @@ rfbNewClientHookPtr clientHook(rfbClientPtr cl) {
 }
 
 void extractReverseHostPort(char *str) {
-	int len = strlen(str);
+	int len = sizeof(str);
 	char *p;
 	/* copy in to host */
-	rhost = (char *) malloc(len + 1);
+	rhost = (char *) malloc(len);
 	if (! rhost) {
-		L(" Reverse connection: could not malloc string %d\n", len);
+		L(" Reverse connection: could not malloc string %d.\n", len);
 		exit(-1);
 	}
-	strncpy(rhost, str, len);
-	rhost[len] = '\0';
+	snprintf(rhost, len, str);
 
 	/* Extract port, if any */
 	if ((p = strrchr(rhost, ':')) != NULL) {
@@ -80,7 +79,7 @@ void initReverseConnection(void) {
 	cl = rfbReverseConnection(vncScreen, rhost, rport);
 	if (cl == NULL) {
 		char *str = malloc(255 * sizeof(char));
-		L(" Couldn't connect to remote host: %s\n",rhost);
+		L(" Couldn't connect to remote host: %s.\n",rhost);
 		free(str);
 	} else {
 		cl->onHold = FALSE;
@@ -164,9 +163,9 @@ int main(int argc, char **argv) {
 
 	// Preset values from environment variables (However, the values specified in the arguments have priority.)
 	if (getenv("VNC_SERVERNAME"))
-		snprintf(VNC_SERVERNAME, sizeof(VNC_SERVERNAME), "%s", getenv("VNC_SERVERNAME"));
+		snprintf(VNC_SERVERNAME, sizeof(VNC_SERVERNAME), getenv("VNC_SERVERNAME"));
 	if (getenv("VNC_PASSWORD"))
-		snprintf(VNC_PASSWORD, sizeof(VNC_PASSWORD), "%s", getenv("VNC_PASSWORD"));
+		snprintf(VNC_PASSWORD, sizeof(VNC_PASSWORD), getenv("VNC_PASSWORD"));
 	if (getenv("VNC_PORT"))
 		VNC_PORT = atoi(getenv("VNC_PORT"));
 
@@ -186,11 +185,11 @@ int main(int argc, char **argv) {
 						break;
 					case 'n':
 						i++;
-						snprintf(VNC_SERVERNAME, sizeof(VNC_SERVERNAME), "%s", argv[i]);
+						snprintf(VNC_SERVERNAME, sizeof(VNC_SERVERNAME), argv[i]);
 						break;
 					case 'p':
 						i++;
-						snprintf(VNC_PASSWORD, sizeof(VNC_PASSWORD), "%s", argv[i]);
+						snprintf(VNC_PASSWORD, sizeof(VNC_PASSWORD), argv[i]);
 						break;
 					case 'f':
 						i++;
