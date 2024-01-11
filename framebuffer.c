@@ -30,16 +30,10 @@ screenformat screenFormat;
 int fbfd = -1;
 unsigned int *fbmmap;
 
-char framebuffer_device[256] = "/dev/fb0";
-
 int roundUpToPageSize(int x);
 
 struct fb_var_screeninfo screenInfo;
 struct fb_fix_screeninfo fixScreenInfo;
-
-void setFrameBufferDevice(char *s) {
-	strcpy(framebuffer_device,s);
-}
 
 void updateFrameBufferInfo(void) {
 	if (ioctl(fbfd, FBIOGET_VSCREENINFO, &screenInfo) != 0) {
@@ -57,8 +51,8 @@ int initFrameBuffer(void) {
 
 	fbmmap = MAP_FAILED;
 
-	if ((fbfd = open(framebuffer_device, O_RDONLY)) == -1) {
-		L(" Cannot open framebuffer device '%s'\n", framebuffer_device);
+	if ((fbfd = open(FB_DEVICE, O_RDONLY)) == -1) {
+		L(" Cannot open framebuffer device '%s'.\n", FB_DEVICE);
 		return -1;
 	} else {
 		L(" The framebuffer device has been attached.\n");

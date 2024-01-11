@@ -148,7 +148,6 @@ void printUsage(char *str) {
 	L("A framebuffer based VNC Server for Amlogic devices\n\n"
 		"Usage: %s [parameters]\n"
 		"-h\t\t- Print this help\n"
-		"-f <device>\t- Framebuffer device\n"
 		"-P <port>\t- Listening port\n"
 		"-n <name>\t- Server name\n"
 		"-p <password>\t- Password to access server\n"
@@ -190,10 +189,6 @@ int main(int argc, char **argv) {
 					case 'p':
 						i++;
 						snprintf(VNC_PASSWORD, sizeof(VNC_PASSWORD), argv[i]);
-						break;
-					case 'f':
-						i++;
-						setFrameBufferDevice(argv[i]);
 						break;
 					case 'P':
 						i++;

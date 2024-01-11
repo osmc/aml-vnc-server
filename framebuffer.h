@@ -27,9 +27,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <limits.h>
 
+#define FB_DEVICE "/dev/fb0"
+
 extern struct fb_var_screeninfo screenInfo;
 
-void setFrameBufferDevice(char *s);
 void updateFrameBufferInfo(void);
 int roundUpToPageSize(int x);
 int initFrameBuffer(void);

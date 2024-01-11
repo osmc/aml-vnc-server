@@ -24,7 +24,7 @@ void initVirtualKeyboard(void);
 void initVirtualPointer(void);
 void closeVirtualKeyboard(void);
 void closeVirtualPointer(void);
-void writeEvent(int udev, __u16 type, __u16 code, __s32 value);
+void writeEvent(int udev, uint16_t type, uint16_t code, int value);
 int keySym2Scancode(rfbKeySym key);
 void addKeyboardEvent(rfbBool down, rfbKeySym key, rfbClientPtr cl);
 void addPointerEvent(int buttonMask, int x, int y, rfbClientPtr cl);
