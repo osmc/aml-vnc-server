@@ -20,31 +20,21 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#define OUT_T CONCAT3E(uint,OUT,_t)
-#define FUNCTION CONCAT2E(update_screen_,OUT)
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
-#define SQUARE(x) ((x)*(x))
+#include "updatescreen.h"
 
-void FUNCTION(void) {
-	int x, y, width, height, slip, step, shift;
+unsigned int *vncBuffer;
+
+rfbScreenInfoPtr vncScreen;
+
+int updateScreen(int width, int height, int bpp) {
+	int x, y, slip, step, shift;
 	int vb_offset = 0, fb_offset = 0, px_offset = 0;
 	int max_x = -1, max_y = -1, min_x = 99999, min_y = 99999;
-
-	// Reset idle state first
-	idle = 1;
+	int idle = 1;
 
 	// Create buffers
-	OUT_T* fb = (OUT_T*)readBufferFB();
-	OUT_T* vb = (OUT_T*)vncbuf;
-
-	// Get screen information
-	struct fb_var_screeninfo scrinfo;
-	scrinfo = FB_getscrinfo();
-
-	// Screen resolution
-	width = vncscr->width;
-	height = vncscr->height;
+	uint32_t* fb = (uint32_t*)readFrameBuffer();
+	uint32_t* vb = (uint32_t*)vncBuffer;
 
 	// Set the pixel grid slip (depends on the resolution)
 	if (height < 540) {
@@ -68,10 +58,9 @@ void FUNCTION(void) {
 
 	// Compare the buffers and find the differences in every line
 	for (y = 0; y < height; y++) {
-
 		// Set all offsets
 		vb_offset = y * width;
-		fb_offset = (y + scrinfo.yoffset) * scrinfo.xres_virtual + scrinfo.xoffset;
+		fb_offset = (y + screenInfo.yoffset) * screenInfo.xres_virtual + screenInfo.xoffset;
 		px_offset = (y * slip + shift) % step;
 
 		// Compare certain pixels in every line with an offset
@@ -98,10 +87,12 @@ void FUNCTION(void) {
 
 		for (y = min_y; y <= max_y; y++) {
 			vb_offset = y * width;
-			fb_offset = (y + scrinfo.yoffset) * scrinfo.xres_virtual + scrinfo.xoffset;
-			memcpy(vncbuf + vb_offset, fb + fb_offset, screenformat.width * screenformat.bitsPerPixel / CHAR_BIT);
+			fb_offset = (y + screenInfo.yoffset) * screenInfo.xres_virtual + screenInfo.xoffset;
+			memcpy(vncBuffer + vb_offset, fb + fb_offset, width * bpp / CHAR_BIT);
 		}
 
-		rfbMarkRectAsModified(vncscr, min_x, min_y, max_x, max_y);
+		rfbMarkRectAsModified(vncScreen, min_x, min_y, max_x, max_y);
 	}
+
+	return idle;
 }

@@ -24,26 +24,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "framebuffer.h"
-#include <limits.h>
 
-screenFormat screenformat;
+screenformat screenFormat;
 
 int fbfd = -1;
 unsigned int *fbmmap;
 
-char framebuffer_device[256] = "/dev/fb0";
-
 int roundUpToPageSize(int x);
 
-struct fb_var_screeninfo scrinfo;
-struct fb_fix_screeninfo fscrinfo;
-
-void setFrameBufferDevice(char *s) {
-	strcpy(framebuffer_device,s);
-}
+struct fb_var_screeninfo screenInfo;
+struct fb_fix_screeninfo fixScreenInfo;
 
 void updateFrameBufferInfo(void) {
-	if (ioctl(fbfd, FBIOGET_VSCREENINFO, &scrinfo) != 0) {
+	if (ioctl(fbfd, FBIOGET_VSCREENINFO, &screenInfo) != 0) {
 		L(" 'ioctl' error!\n");
 		exit(EXIT_FAILURE);
 	}
@@ -58,8 +51,8 @@ int initFrameBuffer(void) {
 
 	fbmmap = MAP_FAILED;
 
-	if ((fbfd = open(framebuffer_device, O_RDONLY)) == -1) {
-		L(" Cannot open framebuffer device '%s'\n", framebuffer_device);
+	if ((fbfd = open(FB_DEVICE, O_RDONLY)) == -1) {
+		L(" Cannot open framebuffer device '%s'.\n", FB_DEVICE);
 		return -1;
 	} else {
 		L(" The framebuffer device has been attached.\n");
@@ -67,22 +60,22 @@ int initFrameBuffer(void) {
 
 	updateFrameBufferInfo();
 
-	if (ioctl(fbfd, FBIOGET_FSCREENINFO, &fscrinfo) != 0) {
+	if (ioctl(fbfd, FBIOGET_FSCREENINFO, &fixScreenInfo) != 0) {
 		L(" 'ioctl' error!\n");
 		return -1;
 	}
 
 	// Framebuffer debug information
-	/*
-	L(" line_length=%d xres=%d, yres=%d, xresv=%d, yresv=%d, xoffs=%d, yoffs=%d, bpp=%d\n",
-		(int)fscrinfo.line_length, (int)scrinfo.xres, (int)scrinfo.yres,
-		(int)scrinfo.xres_virtual, (int)scrinfo.yres_virtual,
-		(int)scrinfo.xoffset, (int)scrinfo.yoffset,
-		(int)scrinfo.bits_per_pixel);
-	*/
+	L(" Virtual width: %d, virtual height: %d.\n",
+		(int)screenInfo.xres_virtual, (int)screenInfo.yres_virtual);
+	L(" X axis offset: %d, Y axis offset: %d.\n",
+		(int)screenInfo.xoffset, (int)screenInfo.yoffset);
 
-	size_t size = scrinfo.yres_virtual;
-	size_t fbSize = roundUpToPageSize(fscrinfo.line_length * size);
+	size_t size = screenInfo.yres_virtual;
+	size_t fbSize = roundUpToPageSize(fixScreenInfo.line_length * size);
+
+	L(" Line length: %d bytes, framebuffer size: %d bytes.\n",
+		(int)fixScreenInfo.line_length, (int)fbSize);
 
 	fbmmap = mmap(NULL, fbSize, PROT_READ, MAP_SHARED, fbfd, 0);
 
@@ -91,7 +84,7 @@ int initFrameBuffer(void) {
 		return -1;
 	}
 
-	fillScreenValues();
+	updateScreenFormat();
 
 	return 1;
 }
@@ -103,32 +96,35 @@ void closeFrameBuffer(void) {
 }
 
 int checkResolutionChange(void) {
-	if ((scrinfo.xres != screenformat.width) || (scrinfo.yres != screenformat.height)) {
-		fillScreenValues();
+	if ((screenInfo.xres != screenFormat.width) || (screenInfo.yres != screenFormat.height)) {
+		L("-- Screen resoulution changed from %dx%d to %dx%d --\n",
+			(int)screenFormat.width, (int)screenFormat.height,
+			(int)screenInfo.xres, (int)screenInfo.yres);
+		updateScreenFormat();
 		return 1;
 	} else {
 		return 0;
 	}
 }
 
-void fillScreenValues(void) {
-	screenformat.width = scrinfo.xres;
-	screenformat.height = scrinfo.yres;
-	screenformat.bitsPerPixel = scrinfo.bits_per_pixel;
-	screenformat.size = screenformat.width * screenformat.height * screenformat.bitsPerPixel / CHAR_BIT;
-	screenformat.redShift = scrinfo.red.offset;
-	screenformat.redMax = scrinfo.red.length;
-	screenformat.greenShift = scrinfo.green.offset;
-	screenformat.greenMax = scrinfo.green.length;
-	screenformat.blueShift = scrinfo.blue.offset;
-	screenformat.blueMax = scrinfo.blue.length;
+void updateScreenFormat(void) {
+	screenFormat.width = screenInfo.xres;
+	screenFormat.height = screenInfo.yres;
+	screenFormat.bitsPerPixel = screenInfo.bits_per_pixel;
+	screenFormat.size = screenFormat.width * screenFormat.height * screenFormat.bitsPerPixel / CHAR_BIT;
+	screenFormat.redShift = screenInfo.red.offset;
+	screenFormat.redMax = screenInfo.red.length;
+	screenFormat.greenShift = screenInfo.green.offset;
+	screenFormat.greenMax = screenInfo.green.length;
+	screenFormat.blueShift = screenInfo.blue.offset;
+	screenFormat.blueMax = screenInfo.blue.length;
 }
 
-struct fb_var_screeninfo FB_getscrinfo(void) {
-	return scrinfo;
+struct fb_var_screeninfo getScreenInfo(void) {
+	return screenInfo;
 }
 
-unsigned int *readBufferFB(void) {
+unsigned int *readFrameBuffer(void) {
 	updateFrameBufferInfo();
 	return fbmmap;
 }

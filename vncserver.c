@@ -24,40 +24,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "version.h"
 #include "framebuffer.h"
 #include "newinput.h"
-
-#include <rfb/rfb.h>
-#include <rfb/keysym.h>
+#include "updatescreen.h"
 
 #include <time.h>
 #include <signal.h>
 
-#define CONCAT2(a,b) a##b
-#define CONCAT2E(a,b) CONCAT2(a,b)
-#define CONCAT3(a,b,c) a##b##c
-#define CONCAT3E(a,b,c) CONCAT3(a,b,c)
-
+int idle = 1;
+int standby = 0;
 int update_loop = 1;
 
 char VNC_SERVERNAME[256];
 char VNC_PASSWORD[256];
 int VNC_PORT = 5900;
 
-unsigned int *vncbuf;
-
-static rfbScreenInfoPtr vncscr;
-
-uint32_t idle = 1;
-uint32_t standby = 1;
-
 // Reverse connection
 char *rhost = NULL;
 int rport = 5500;
-
-void (*updateScreen)(void) = NULL;
-
-#define OUT 32
-#include "updateScreen.c"
-#undef OUT
 
 ClientGoneHookPtr clientGone(rfbClientPtr cl) {
 	return 0;
@@ -69,16 +51,15 @@ rfbNewClientHookPtr clientHook(rfbClientPtr cl) {
 }
 
 void extractReverseHostPort(char *str) {
-	int len = strlen(str);
+	int len = sizeof(str);
 	char *p;
 	/* copy in to host */
-	rhost = (char *) malloc(len + 1);
+	rhost = (char *) malloc(len);
 	if (! rhost) {
-		L("Reverse connection: could not malloc string %d\n", len);
+		L(" Reverse connection: could not malloc string %d.\n", len);
 		exit(-1);
 	}
-	strncpy(rhost, str, len);
-	rhost[len] = '\0';
+	snprintf(rhost, len, str);
 
 	/* Extract port, if any */
 	if ((p = strrchr(rhost, ':')) != NULL) {
@@ -95,10 +76,10 @@ void extractReverseHostPort(char *str) {
 
 void initReverseConnection(void) {
 	rfbClientPtr cl;
-	cl = rfbReverseConnection(vncscr, rhost, rport);
+	cl = rfbReverseConnection(vncScreen, rhost, rport);
 	if (cl == NULL) {
 		char *str = malloc(255 * sizeof(char));
-		L(" Couldn't connect to remote host: %s\n",rhost);
+		L(" Couldn't connect to remote host: %s.\n",rhost);
 		free(str);
 	} else {
 		cl->onHold = FALSE;
@@ -109,56 +90,54 @@ void initReverseConnection(void) {
 void initServer(int argc, char **argv) {
 	L("-- Initializing VNC server --\n");
 	L(" Screen resolution: %dx%d, bit depth: %d bpp.\n",
-		(int)screenformat.width, (int)screenformat.height, (int)screenformat.bitsPerPixel);
+		(int)screenFormat.width, (int)screenFormat.height, (int)screenFormat.bitsPerPixel);
 	L(" RGBA colormap: %d:%d:%d, length: %d:%d:%d.\n",
-		screenformat.redShift, screenformat.greenShift, screenformat.blueShift,
-		screenformat.redMax, screenformat.greenMax, screenformat.blueMax);
+		screenFormat.redShift, screenFormat.greenShift, screenFormat.blueShift,
+		screenFormat.redMax, screenFormat.greenMax, screenFormat.blueMax);
+	L(" Screen buffer size: %d bytes.\n", (int)(screenFormat.size));
 
-	vncbuf = calloc(screenformat.width * screenformat.height, screenformat.bitsPerPixel / CHAR_BIT);
-	assert(vncbuf != NULL);
+	vncBuffer = calloc(screenFormat.width * screenFormat.height, screenFormat.bitsPerPixel / CHAR_BIT);
+	assert(vncBuffer != NULL);
 
-	vncscr = rfbGetScreen(&argc, argv, screenformat.width, screenformat.height, 0 /* not used */ , 3,  screenformat.bitsPerPixel / CHAR_BIT);
-	assert(vncscr != NULL);
+	vncScreen = rfbGetScreen(&argc, argv, screenFormat.width, screenFormat.height, 0 /* not used */ , 3,  screenFormat.bitsPerPixel / CHAR_BIT);
+	assert(vncScreen != NULL);
 
-	vncscr->desktopName = VNC_SERVERNAME;
-	vncscr->frameBuffer = (char *)vncbuf;
-	vncscr->port = VNC_PORT;
-	vncscr->ipv6port = VNC_PORT;
-	vncscr->kbdAddEvent = addKeyboardEvent;
-	vncscr->ptrAddEvent = addPointerEvent;
-	vncscr->newClientHook = (rfbNewClientHookPtr)clientHook;
+	vncScreen->desktopName = VNC_SERVERNAME;
+	vncScreen->frameBuffer = (char *)vncBuffer;
+	vncScreen->port = VNC_PORT;
+	vncScreen->ipv6port = VNC_PORT;
+	vncScreen->kbdAddEvent = addKeyboardEvent;
+	vncScreen->ptrAddEvent = addPointerEvent;
+	vncScreen->newClientHook = (rfbNewClientHookPtr)clientHook;
 
 	if (strcmp(VNC_PASSWORD, "") != 0) {
 		char **passwords = (char **)malloc(2 * sizeof(char **));
 		passwords[0] = VNC_PASSWORD;
 		passwords[1] = NULL;
-		vncscr->authPasswdData = passwords;
-		vncscr->passwordCheck = rfbCheckPasswordByList;
+		vncScreen->authPasswdData = passwords;
+		vncScreen->passwordCheck = rfbCheckPasswordByList;
 	}
 
-	vncscr->serverFormat.redShift = screenformat.redShift;
-	vncscr->serverFormat.greenShift = screenformat.greenShift;
-	vncscr->serverFormat.blueShift = screenformat.blueShift;
+	vncScreen->serverFormat.redShift = screenFormat.redShift;
+	vncScreen->serverFormat.greenShift = screenFormat.greenShift;
+	vncScreen->serverFormat.blueShift = screenFormat.blueShift;
 
-	vncscr->serverFormat.redMax = (( 1 << screenformat.redMax) -1);
-	vncscr->serverFormat.greenMax = (( 1 << screenformat.greenMax) -1);
-	vncscr->serverFormat.blueMax = (( 1 << screenformat.blueMax) -1);
+	vncScreen->serverFormat.redMax = (( 1 << screenFormat.redMax) -1);
+	vncScreen->serverFormat.greenMax = (( 1 << screenFormat.greenMax) -1);
+	vncScreen->serverFormat.blueMax = (( 1 << screenFormat.blueMax) -1);
 
-	vncscr->serverFormat.trueColour = TRUE;
-	vncscr->serverFormat.bitsPerPixel = screenformat.bitsPerPixel;
+	vncScreen->serverFormat.trueColour = TRUE;
+	vncScreen->serverFormat.bitsPerPixel = screenFormat.bitsPerPixel;
 
-	vncscr->alwaysShared = TRUE;
+	vncScreen->alwaysShared = TRUE;
 
 	L("-- Starting the server --\n");
-	rfbInitServer(vncscr);
+	rfbInitServer(vncScreen);
 
 	if (rhost)
 		initReverseConnection();
 
-	updateScreen = update_screen_32;
-
-	/* Mark as dirty since we haven't sent any updates at all yet. */
-	rfbMarkRectAsModified(vncscr, 0, 0, vncscr->width, vncscr->height);
+	updateScreen(screenFormat.width, screenFormat.height, screenFormat.bitsPerPixel);
 }
 
 void sigHandler() {
@@ -169,7 +148,6 @@ void printUsage(char *str) {
 	L("A framebuffer based VNC Server for Amlogic devices\n\n"
 		"Usage: %s [parameters]\n"
 		"-h\t\t- Print this help\n"
-		"-f <device>\t- Framebuffer device\n"
 		"-P <port>\t- Listening port\n"
 		"-n <name>\t- Server name\n"
 		"-p <password>\t- Password to access server\n"
@@ -184,9 +162,9 @@ int main(int argc, char **argv) {
 
 	// Preset values from environment variables (However, the values specified in the arguments have priority.)
 	if (getenv("VNC_SERVERNAME"))
-		snprintf(VNC_SERVERNAME, sizeof(VNC_SERVERNAME), "%s", getenv("VNC_SERVERNAME"));
+		snprintf(VNC_SERVERNAME, sizeof(VNC_SERVERNAME), getenv("VNC_SERVERNAME"));
 	if (getenv("VNC_PASSWORD"))
-		snprintf(VNC_PASSWORD, sizeof(VNC_PASSWORD), "%s", getenv("VNC_PASSWORD"));
+		snprintf(VNC_PASSWORD, sizeof(VNC_PASSWORD), getenv("VNC_PASSWORD"));
 	if (getenv("VNC_PORT"))
 		VNC_PORT = atoi(getenv("VNC_PORT"));
 
@@ -206,15 +184,11 @@ int main(int argc, char **argv) {
 						break;
 					case 'n':
 						i++;
-						snprintf(VNC_SERVERNAME, sizeof(VNC_SERVERNAME), "%s", argv[i]);
+						snprintf(VNC_SERVERNAME, sizeof(VNC_SERVERNAME), argv[i]);
 						break;
 					case 'p':
 						i++;
-						snprintf(VNC_PASSWORD, sizeof(VNC_PASSWORD), "%s", argv[i]);
-						break;
-					case 'f':
-						i++;
-						setFrameBufferDevice(argv[i]);
+						snprintf(VNC_PASSWORD, sizeof(VNC_PASSWORD), argv[i]);
 						break;
 					case 'P':
 						i++;
@@ -240,22 +214,25 @@ int main(int argc, char **argv) {
 
 	// Start the update loop
 	while (update_loop) {
-		usec = (vncscr->deferUpdateTime + standby) * 1000;
-		rfbProcessEvents(vncscr, usec);
-		if (idle)
+		usec = (vncScreen->deferUpdateTime + standby) * 1000;
+		rfbProcessEvents(vncScreen, usec);
+		if (idle) {
 			standby = 100;
-		else
+		} else {
 			standby = 10;
+		}
 
-		if (vncscr->clientHead != NULL) {
+		if (vncScreen->clientHead != NULL) {
 			if (!checkResolutionChange()) {
-				updateScreen();
+				idle = updateScreen(screenFormat.width, screenFormat.height, screenFormat.bitsPerPixel);
 			} else {
-				L("-- Screen resolution changed, reinitialization started --\n");
-				rfbShutdownServer(vncscr, TRUE);
-				free(vncscr->frameBuffer);
-				rfbScreenCleanup(vncscr);
+				L(" Reinitialization started...\n");
+				rfbShutdownServer(vncScreen, TRUE);
+				free(vncScreen->frameBuffer);
+				rfbScreenCleanup(vncScreen);
 				closeVirtualPointer();
+				closeFrameBuffer();
+				initFrameBuffer();
 				initVirtualPointer();
 				initServer(argc, argv);
 			}
@@ -264,9 +241,9 @@ int main(int argc, char **argv) {
 
 	// VNC server shutdown
 	L("-- Shutting down the server --\n");
-	rfbShutdownServer(vncscr, TRUE);
-	free(vncscr->frameBuffer);
-	rfbScreenCleanup(vncscr);
+	rfbShutdownServer(vncScreen, TRUE);
+	free(vncScreen->frameBuffer);
+	rfbScreenCleanup(vncScreen);
 
 	L("-- Cleaning up --\n");
 	closeFrameBuffer();

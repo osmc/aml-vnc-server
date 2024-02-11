@@ -29,7 +29,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 
 #include <unistd.h>
@@ -46,7 +45,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <assert.h>
 #include <errno.h>
 
-#include "screenFormat.h"
+#include <rfb/rfb.h>
+
+#include "screenformat.h"
 
 #define L(...) do{ printf(__VA_ARGS__); } while (0);
 #endif
@@ -70,10 +71,8 @@ struct fbinfo {
 typedef int (*init_fn_type)(void);
 typedef int (*close_fn_type)(void);
 typedef unsigned char * (*readfb_fn_type)(void);
-typedef screenFormat (*getscreenformat_fn_type)(void);
+typedef screenformat (*getscreenformat_fn_type)(void);
 
-extern screenFormat screenformat;
-
-#define ARR_LEN(a) (sizeof(a)/sizeof(a)[0])
+extern screenformat screenFormat;
 
 #endif
