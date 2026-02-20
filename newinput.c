@@ -43,7 +43,7 @@ void initVirtualKeyboard(void) {
 	}
 
 	memset(&uinp_dev, 0, sizeof(uinp_dev));
-	snprintf(uinp_dev.name, UINPUT_MAX_NAME_SIZE, "VNC keysim device");
+	snprintf(uinp_dev.name, UINPUT_MAX_NAME_SIZE, "VNC keysym device");
 	uinp_dev.id.version = 4;
 	uinp_dev.id.bustype = BUS_USB;
 
@@ -135,145 +135,183 @@ void writeEvent(int udev, uint16_t type, uint16_t code, int value) {
 }
 
 int keySym2Scancode(rfbKeySym key) {
-	int scancode = 0;
-	int code = (int) key;
+	//L("DEBUG -> Keyboard keysym key: %04X.\n", key);
 
-	//L("DEBUG -> Keyboard keysim code: %04X.\n", key);
+	switch (key) {
 
-	if (code>='0' && code<='9') {
-		scancode = (code & 0xF) - 1;
-		if (scancode<0) scancode += 10;
-		scancode += KEY_1;
-	} else if (code>=0xFF50 && code<=0xFF58) {
-		static const uint16_t map[] = {
-			KEY_HOME, KEY_LEFT, KEY_UP, KEY_RIGHT, KEY_DOWN,
-			KEY_PAGEUP, KEY_PAGEDOWN, KEY_END, 0 };
-		scancode = map[code & 0xF];
-	} else if (code>=0xFFE1 && code<=0xFFEE) {
-		static const uint16_t map[] = {
-			KEY_LEFTSHIFT, KEY_LEFTSHIFT,
-			KEY_LEFTCTRL, KEY_LEFTCTRL,
-			KEY_LEFTSHIFT, KEY_LEFTSHIFT,
-			0,0,
-			KEY_LEFTALT, KEY_RIGHTALT,
-			0, 0, 0, 0 };
-		scancode = map[code & 0xF];
-	} else if ((code>='A' && code<='Z') || (code>='a' && code<='z')) {
-		static const uint16_t map[] = {
-			KEY_A, KEY_B, KEY_C, KEY_D, KEY_E,
-			KEY_F, KEY_G, KEY_H, KEY_I, KEY_J,
-			KEY_K, KEY_L, KEY_M, KEY_N, KEY_O,
-			KEY_P, KEY_Q, KEY_R, KEY_S, KEY_T,
-			KEY_U, KEY_V, KEY_W, KEY_X, KEY_Y, KEY_Z };
-		scancode = map[(code & 0x5F) - 'A'];
-	} else {
-		switch (code) {
-			/* Standalone special character codes */
-			case XK_space: scancode = KEY_SPACE; break;
-			case XK_minus: scancode = KEY_MINUS; break;
-			case XK_equal: scancode = KEY_EQUAL; break;
-			case XK_braceleft: scancode = KEY_LEFTBRACE; break;
-			case XK_braceright: scancode = KEY_RIGHTBRACE; break;
-			case XK_semicolon: scancode = KEY_SEMICOLON; break;
-			case XK_apostrophe: scancode = KEY_APOSTROPHE; break;
-			case XK_grave: scancode = KEY_GRAVE; break;
-			case XK_backslash: scancode = KEY_BACKSLASH; break;
-			case XK_comma: scancode = KEY_COMMA; break;
-			case XK_period: scancode = KEY_DOT; break;
-			case XK_slash: scancode = KEY_SLASH; break;
+		/* Modifiers */
+		case XK_Shift_L:	return KEY_LEFTSHIFT;
+		case XK_Shift_R:	return KEY_RIGHTSHIFT;
+		case XK_Control_L:	return KEY_LEFTCTRL;
+		case XK_Control_R:	return KEY_RIGHTCTRL;
+		case XK_Alt_L:		return KEY_LEFTALT;
+		case XK_Alt_R:
+		case XK_ISO_Level3_Shift:
+					return KEY_RIGHTALT;
 
-			/* SHIFT + special character codes - These only works properly with US keyboard layout! */
-			case XK_exclam: scancode = KEY_1; break;
-			case XK_at: scancode = KEY_2; break;
-			case XK_numbersign: scancode = KEY_3; break;
-			case XK_dollar: scancode = KEY_4; break;
-			case XK_percent: scancode = KEY_5; break;
-			case XK_asciicircum: scancode = KEY_6; break;
-			case XK_ampersand: scancode = KEY_7; break;
-			case XK_asterisk: scancode = KEY_8; break;
-			case XK_parenleft: scancode = KEY_9; break;
-			case XK_parenright: scancode = KEY_0; break;
-			case XK_underscore: scancode = KEY_MINUS; break;
-			case XK_plus: scancode = KEY_EQUAL; break;
-			case XK_bracketleft: scancode = KEY_LEFTBRACE; break;
-			case XK_bracketright: scancode = KEY_RIGHTBRACE; break;
-			case XK_colon: scancode = KEY_SEMICOLON; break;
-			case XK_quotedbl: scancode = KEY_APOSTROPHE; break;
-			case XK_asciitilde: scancode = KEY_GRAVE; break;
-			case XK_bar: scancode = KEY_BACKSLASH; break;
-			case XK_less: scancode = KEY_COMMA; break;
-			case XK_greater: scancode = KEY_DOT; break;
-			case XK_question: scancode = KEY_SLASH; break;
+		/* Alphabetic keys */
+		case XK_a: case XK_A:	return KEY_A;
+		case XK_b: case XK_B:	return KEY_B;
+		case XK_c: case XK_C:	return KEY_C;
+		case XK_d: case XK_D:	return KEY_D;
+		case XK_e: case XK_E:	return KEY_E;
+		case XK_f: case XK_F:	return KEY_F;
+		case XK_g: case XK_G:	return KEY_G;
+		case XK_h: case XK_H:	return KEY_H;
+		case XK_i: case XK_I:	return KEY_I;
+		case XK_j: case XK_J:	return KEY_J;
+		case XK_k: case XK_K:	return KEY_K;
+		case XK_l: case XK_L:	return KEY_L;
+		case XK_m: case XK_M:	return KEY_M;
+		case XK_n: case XK_N:	return KEY_N;
+		case XK_o: case XK_O:	return KEY_O;
+		case XK_p: case XK_P:	return KEY_P;
+		case XK_q: case XK_Q:	return KEY_Q;
+		case XK_r: case XK_R:	return KEY_R;
+		case XK_s: case XK_S:	return KEY_S;
+		case XK_t: case XK_T:	return KEY_T;
+		case XK_u: case XK_U:	return KEY_U;
+		case XK_v: case XK_V:	return KEY_V;
+		case XK_w: case XK_W:	return KEY_W;
+		case XK_x: case XK_X:	return KEY_X;
+		case XK_y: case XK_Y:	return KEY_Y;
+		case XK_z: case XK_Z:	return KEY_Z;
 
-			/* Function key codes */
-			case XK_F1: scancode = KEY_F1; break;
-			case XK_F2: scancode = KEY_F2; break;
-			case XK_F3: scancode = KEY_F3; break;
-			case XK_F4: scancode = KEY_F4; break;
-			case XK_F5: scancode = KEY_F5; break;
-			case XK_F6: scancode = KEY_F6; break;
-			case XK_F7: scancode = KEY_F7; break;
-			case XK_F8: scancode = KEY_F8; break;
-			case XK_F9: scancode = KEY_F9; break;
-			case XK_F10: scancode = KEY_F10; break;
-			case XK_F11: scancode = KEY_F11; break;
-			case XK_F12: scancode = KEY_F12; break;
-			case XK_Page_Down: scancode = KEY_PAGEDOWN; break;
-			case XK_Insert: scancode = KEY_INSERT; break;
-			case XK_Delete: scancode = KEY_DELETE; break;
-			case XK_Page_Up: scancode = KEY_PAGEUP; break;
-			case XK_Escape: scancode = KEY_ESC; break;
-			case XK_BackSpace: scancode = KEY_BACKSPACE; break;
-			case XK_Tab: scancode = KEY_TAB; break;
-			case XK_Return: scancode = KEY_ENTER; break;
+		/* Numeric keys */
+		case XK_1:		return KEY_1;
+		case XK_2:		return KEY_2;
+		case XK_3:		return KEY_3;
+		case XK_4:		return KEY_4;
+		case XK_5:		return KEY_5;
+		case XK_6:		return KEY_6;
+		case XK_7:		return KEY_7;
+		case XK_8:		return KEY_8;
+		case XK_9:		return KEY_9;
+		case XK_0:		return KEY_0;
 
-			/* Numeric keypad codes -> Independent of server-side Num Lock state */
-			case XK_KP_Divide: scancode = KEY_KPSLASH; break;
-			case XK_KP_Multiply: scancode = KEY_KPASTERISK; break;
-			case XK_KP_Add: scancode = KEY_KPPLUS; break;
-			case XK_KP_Subtract: scancode = KEY_KPMINUS; break;
-			case XK_KP_Enter: scancode = KEY_KPENTER; break;
-			case XK_KP_Decimal: scancode = KEY_KPDOT; break;
-			case XK_KP_0: scancode = KEY_0; break;
-			case XK_KP_1: scancode = KEY_1; break;
-			case XK_KP_2: scancode = KEY_2; break;
-			case XK_KP_3: scancode = KEY_3; break;
-			case XK_KP_4: scancode = KEY_4; break;
-			case XK_KP_5: scancode = KEY_5; break;
-			case XK_KP_6: scancode = KEY_6; break;
-			case XK_KP_7: scancode = KEY_7; break;
-			case XK_KP_8: scancode = KEY_8; break;
-			case XK_KP_9: scancode = KEY_9; break;
-			case XK_KP_Home: scancode = KEY_HOME; break;
-			case XK_KP_End: scancode = KEY_END; break;
-			case XK_KP_Page_Up: scancode = KEY_PAGEUP; break;
-			case XK_KP_Page_Down: scancode = KEY_PAGEDOWN; break;
-			case XK_KP_Up: scancode = KEY_UP; break;
-			case XK_KP_Down: scancode = KEY_DOWN; break;
-			case XK_KP_Left: scancode = KEY_LEFT; break;
-			case XK_KP_Right: scancode = KEY_RIGHT; break;
-			case XK_KP_Insert: scancode = KEY_INSERT; break;
-			case XK_KP_Delete: scancode = KEY_DELETE; break;
-		}
+		/* System and navigation keys */
+		case XK_Escape:		return KEY_ESC;
+		case XK_BackSpace:	return KEY_BACKSPACE;
+		case XK_Tab:		return KEY_TAB;
+		case XK_Return:		return KEY_ENTER;
+		case XK_Insert:		return KEY_INSERT;
+		case XK_Delete:		return KEY_DELETE;
+		case XK_Home:		return KEY_HOME;
+		case XK_Left:		return KEY_LEFT;
+		case XK_Up:		return KEY_UP;
+		case XK_Right:		return KEY_RIGHT;
+		case XK_Down:		return KEY_DOWN;
+		case XK_Page_Up:	return KEY_PAGEUP;
+		case XK_Page_Down:	return KEY_PAGEDOWN;
+		case XK_End:		return KEY_END;
+
+		/* Function keys (F1-F12) */
+		case XK_F1:		return KEY_F1;
+		case XK_F2:		return KEY_F2;
+		case XK_F3:		return KEY_F3;
+		case XK_F4:		return KEY_F4;
+		case XK_F5:		return KEY_F5;
+		case XK_F6:		return KEY_F6;
+		case XK_F7:		return KEY_F7;
+		case XK_F8:		return KEY_F8;
+		case XK_F9:		return KEY_F9;
+		case XK_F10:		return KEY_F10;
+		case XK_F11:		return KEY_F11;
+		case XK_F12:		return KEY_F12;
+
+		/* Physical punctuation keys */
+		case XK_space:		return KEY_SPACE;
+		case XK_minus:		return KEY_MINUS;
+		case XK_equal:		return KEY_EQUAL;
+		case XK_bracketleft:	return KEY_LEFTBRACE;
+		case XK_bracketright:	return KEY_RIGHTBRACE;
+		case XK_semicolon:	return KEY_SEMICOLON;
+		case XK_apostrophe:	return KEY_APOSTROPHE;
+		case XK_grave:		return KEY_GRAVE;
+		case XK_backslash:	return KEY_BACKSLASH;
+		case XK_comma:		return KEY_COMMA;
+		case XK_period:		return KEY_DOT;
+		case XK_slash:		return KEY_SLASH;
+
+		/* Layout dependent keys - Used together with modifiers (US) */
+		case XK_exclam:		return KEY_1;
+		case XK_at:		return KEY_2;
+		case XK_numbersign:	return KEY_3;
+		case XK_dollar:		return KEY_4;
+		case XK_percent:	return KEY_5;
+		case XK_asciicircum:	return KEY_6;
+		case XK_ampersand:	return KEY_7;
+		case XK_parenleft:	return KEY_9;
+		case XK_parenright:	return KEY_0;
+		case XK_underscore:	return KEY_MINUS;
+		case XK_colon:		return KEY_SEMICOLON;
+		case XK_quotedbl:	return KEY_APOSTROPHE;
+		case XK_asciitilde:	return KEY_GRAVE;
+		case XK_bar:		return KEY_BACKSLASH;
+		case XK_less:		return KEY_COMMA;
+		case XK_greater:	return KEY_DOT;
+		case XK_question:	return KEY_SLASH;
+
+		/* Numeric keypad - Independent of server-side Num Lock state */
+		case XK_KP_Divide:	return KEY_KPSLASH;
+		case XK_KP_Multiply:	return KEY_KPASTERISK;
+		case XK_KP_Add:		return KEY_KPPLUS;
+		case XK_KP_Subtract:	return KEY_KPMINUS;
+		case XK_KP_Enter:	return KEY_KPENTER;
+		case XK_KP_Decimal:	return KEY_KPDOT;
+		case XK_KP_0:		return KEY_0;
+		case XK_KP_1:		return KEY_1;
+		case XK_KP_2:		return KEY_2;
+		case XK_KP_3:		return KEY_3;
+		case XK_KP_4:		return KEY_4;
+		case XK_KP_5:		return KEY_5;
+		case XK_KP_6:		return KEY_6;
+		case XK_KP_7:		return KEY_7;
+		case XK_KP_8:		return KEY_8;
+		case XK_KP_9:		return KEY_9;
+		case XK_KP_Home:	return KEY_HOME;
+		case XK_KP_End:		return KEY_END;
+		case XK_KP_Page_Up:	return KEY_PAGEUP;
+		case XK_KP_Page_Down:	return KEY_PAGEDOWN;
+		case XK_KP_Up:		return KEY_UP;
+		case XK_KP_Down:	return KEY_DOWN;
+		case XK_KP_Left:	return KEY_LEFT;
+		case XK_KP_Right:	return KEY_RIGHT;
+		case XK_KP_Insert:	return KEY_INSERT;
+		case XK_KP_Delete:	return KEY_DELETE;
+
+		/* Redefined keys */
+		case XK_asterisk:	return KEY_KPASTERISK;
+		case XK_plus:		return KEY_KPPLUS;
+
+		/* Unhandled keys */
+		default:		return 0;
 	}
-	return scancode;
 }
 
 void addKeyboardEvent(rfbBool down, rfbKeySym key, rfbClientPtr cl) {
 	int scancode = keySym2Scancode(key);
 	int was_down = down_keys[scancode];
 
-	// Key press event
+	// Reset synchronization request
+	int need_sync = 0;
+
+	// Key repeat and press event
 	if(down) {
-		writeEvent(virt_kbd, EV_KEY, scancode, was_down ? 2 : 1); // Key repeat/press
-		writeEvent(virt_kbd, EV_SYN, SYN_REPORT, 0); // Synchronization
+		writeEvent(virt_kbd, EV_KEY, scancode, was_down ? 2 : 1); // Auto-repeat (2), Press (1)
 		down_keys[scancode] = 1;
+		need_sync = 1;
 
 	// Key release event
 	} else {
-		writeEvent(virt_kbd, EV_KEY, scancode, 0); // Key release
-		writeEvent(virt_kbd, EV_SYN, SYN_REPORT, 0); // Synchronization
+		writeEvent(virt_kbd, EV_KEY, scancode, 0); // Release (0)
 		down_keys[scancode] = 0;
+		need_sync = 1;
+	}
+
+	// Synchronization
+	if (need_sync) {
+		writeEvent(virt_kbd, EV_SYN, SYN_REPORT, 0);
 	}
 }
 
