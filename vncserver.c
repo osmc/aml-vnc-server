@@ -159,7 +159,7 @@ void printUsage(char *str) {
 
 int main(int argc, char **argv) {
 	struct timespec ts_now;
-	long usec, time_limit, time_last, time_now;
+	uint64_t usec, time_limit, time_last, time_now;
 
 	// Set the default server name based on the hostname
 	gethostname(VNC_SERVERNAME, sizeof(VNC_SERVERNAME));
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
 	signal(SIGINT, sigHandler);
 
 	// Set refresh cycle check values
-	time_limit = 1000000 / target_fps;
+	time_limit = 1000000ULL / target_fps;
 	time_last = 0;
 
 	// Start the update loop
@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
 			if (!checkResolutionChange()) {
 				// Ignore events if they arrive before the next FPS expected
 				clock_gettime(CLOCK_MONOTONIC, &ts_now);
-				time_now = ts_now.tv_sec * 1000000 + ts_now.tv_nsec / 1000;
+				time_now = (uint64_t)ts_now.tv_sec * 1000000ULL + ts_now.tv_nsec / 1000ULL;
 				if (time_now - time_last >= time_limit) {
 					idle = updateScreen(screenFormat.width, screenFormat.height, screenFormat.bitsPerPixel);
 					time_last = time_now;
