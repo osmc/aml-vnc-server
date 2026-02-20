@@ -278,50 +278,63 @@ void addKeyboardEvent(rfbBool down, rfbKeySym key, rfbClientPtr cl) {
 }
 
 void addPointerEvent(int buttonMask, int x, int y, rfbClientPtr cl) {
-	//L("DEBUG -> Mouse button mask: 0x%x, remote cursor position: X=%d, Y=%d.\n", buttonMask, x, y);
+	//L("DEBUG -> Last button mask: 0x%x, current button mask: 0x%x, cursor position: X=%d, Y=%d.\n", mouse_button, buttonMask, x, y);
 
-	// Mouse buttons and scroll events
+	// Reset synchronization request
+	int need_sync = 0;
+
+	// Mouse cursor events are only processed when movement occurs
+	if (mouse_x != x || mouse_y != y) {
+
+		// Set cursor coordinates
+		writeEvent(virt_ptr, EV_ABS, ABS_X, x); // X axis
+		writeEvent(virt_ptr, EV_ABS, ABS_Y, y); // Y axis
+		need_sync = 1;
+
+		// Set the current position as the last position
+		mouse_x = x;
+		mouse_y = y;
+	}
+
+	// Button and scrool wheel events are only processed when a state change occurs
 	if (mouse_button != buttonMask) {
 
 		// Left button
 		if ((mouse_button & BTN_LEFT_MASK) != (buttonMask & BTN_LEFT_MASK)) {
-			writeEvent(virt_ptr, EV_KEY, BTN_LEFT, buttonMask & BTN_LEFT_MASK);
+			writeEvent(virt_ptr, EV_KEY, BTN_LEFT, (buttonMask & BTN_LEFT_MASK) ? 1 : 0);
+			need_sync = 1;
 		}
 
 		// Middle button
 		if ((mouse_button & BTN_MIDDLE_MASK) != (buttonMask & BTN_MIDDLE_MASK)) {
-			writeEvent(virt_ptr, EV_KEY, BTN_MIDDLE, buttonMask & BTN_MIDDLE_MASK);
+			writeEvent(virt_ptr, EV_KEY, BTN_MIDDLE, (buttonMask & BTN_MIDDLE_MASK) ? 1 : 0);
+			need_sync = 1;
 		}
 
 		// Right button
 		if ((mouse_button & BTN_RIGHT_MASK) != (buttonMask & BTN_RIGHT_MASK)) {
-			writeEvent(virt_ptr, EV_KEY, BTN_RIGHT, buttonMask & BTN_RIGHT_MASK);
+			writeEvent(virt_ptr, EV_KEY, BTN_RIGHT, (buttonMask & BTN_RIGHT_MASK) ? 1 : 0);
+			need_sync = 1;
 		}
 
-		// Wheel up
-		if ((mouse_button & WHEEL_UP_MASK) != (buttonMask & WHEEL_UP_MASK)) {
-			writeEvent(virt_ptr, EV_REL, REL_WHEEL, BTN_LEFT_MASK);
+		// Scroll wheel up
+		if (!(mouse_button & WHEEL_UP_MASK) && (buttonMask & WHEEL_UP_MASK)) {
+			writeEvent(virt_ptr, EV_REL, REL_WHEEL, 1);
+			need_sync = 1;
 		}
 
-		// Wheel down
-		if ((mouse_button & WHEEL_DOWN_MASK) != (buttonMask & WHEEL_DOWN_MASK)) {
-			writeEvent(virt_ptr, EV_REL, REL_WHEEL, -BTN_RIGHT_MASK);
+		// Scroll wheel down
+		if (!(mouse_button & WHEEL_DOWN_MASK) && (buttonMask & WHEEL_DOWN_MASK)) {
+			writeEvent(virt_ptr, EV_REL, REL_WHEEL, -1);
+			need_sync = 1;
 		}
 
 		// Set the current state as the last button state
 		mouse_button = buttonMask;
+	}
 
-		// Mouse movements -> To minimize CPU load only update the cursor on server side when mouse interaction occurs.
-		if (mouse_x != x || mouse_y != y) {
-			writeEvent(virt_ptr, EV_ABS, ABS_X, x); // X axis
-			writeEvent(virt_ptr, EV_ABS, ABS_Y, y); // Y axis
-
-			// Set the current position as the last position
-			mouse_x = x;
-			mouse_y = y;
-		}
-
-		// Synchronization
+	// Synchronization
+	if (need_sync) {
 		writeEvent(virt_ptr, EV_SYN, SYN_REPORT, 0);
 	}
 }
