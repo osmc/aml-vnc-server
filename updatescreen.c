@@ -53,7 +53,6 @@ int updateScreen(int width, int height, int bpp) {
 	step = SQUARE(slip) - 1;
 
 	// Generate a random step shift (It helps to eliminate any remaining dirty zones between each image update.)
-	srand(time(NULL));
 	shift = rand() % step;
 
 	// Compare the buffers and find the differences in every line

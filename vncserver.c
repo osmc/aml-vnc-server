@@ -205,6 +205,7 @@ int main(int argc, char **argv) {
 	}
 
 	// Start initialization
+	srand(time(NULL));
 	initFrameBuffer();
 	initVirtualKeyboard();
 	initVirtualPointer();
