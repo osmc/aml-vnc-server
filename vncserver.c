@@ -41,6 +41,9 @@ int VNC_PORT = 5900;
 char *rhost = NULL;
 int rport = 5500;
 
+// Maximum FPS
+int target_fps = 20;
+
 ClientGoneHookPtr clientGone(rfbClientPtr cl) {
 	return 0;
 }
@@ -155,7 +158,8 @@ void printUsage(char *str) {
 }
 
 int main(int argc, char **argv) {
-	long usec;
+	struct timespec ts_now;
+	uint64_t usec, time_limit, time_last, time_now;
 
 	// Set the default server name based on the hostname
 	gethostname(VNC_SERVERNAME, sizeof(VNC_SERVERNAME));
@@ -205,12 +209,17 @@ int main(int argc, char **argv) {
 	}
 
 	// Start initialization
+	srand(time(NULL));
 	initFrameBuffer();
 	initVirtualKeyboard();
 	initVirtualPointer();
 	initServer(argc, argv);
 
 	signal(SIGINT, sigHandler);
+
+	// Set refresh cycle check values
+	time_limit = 1000000ULL / target_fps;
+	time_last = 0;
 
 	// Start the update loop
 	while (update_loop) {
@@ -224,7 +233,13 @@ int main(int argc, char **argv) {
 
 		if (vncScreen->clientHead != NULL) {
 			if (!checkResolutionChange()) {
-				idle = updateScreen(screenFormat.width, screenFormat.height, screenFormat.bitsPerPixel);
+				// Ignore events if they arrive before the next FPS expected
+				clock_gettime(CLOCK_MONOTONIC, &ts_now);
+				time_now = (uint64_t)ts_now.tv_sec * 1000000ULL + ts_now.tv_nsec / 1000ULL;
+				if (time_now - time_last >= time_limit) {
+					idle = updateScreen(screenFormat.width, screenFormat.height, screenFormat.bitsPerPixel);
+					time_last = time_now;
+				}
 			} else {
 				L(" Reinitialization started...\n");
 				rfbShutdownServer(vncScreen, TRUE);
