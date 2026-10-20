@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Header file for screen update and diff logic
+
 #ifndef UPDATESCREEN_H
 #define UPDATESCREEN_H
 
@@ -8,10 +11,10 @@
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #define SQUARE(x) ((x)*(x))
 
-extern unsigned int *vncBuffer;
-
+extern uint32_t *vncBuffer;
 extern rfbScreenInfoPtr vncScreen;
 
-int updateScreen(int width, int height, int bpp);
+void updateScreen(void);
+void clearScreen(void);
 
 #endif

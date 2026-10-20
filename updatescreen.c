@@ -1,52 +1,44 @@
-/*
-droid VNC server  - a vnc server for android
-Copyright (C) 2011 Jose Pereira <onaips@gmail.com>
-
-Modified for AML TV Boxes by kszaq <kszaquitto@gmail.com>
-Additional developments by dtech(.hu) <dee.gabor@gmail.com>
-
-This library is free software; you can redistribute it and/or
-modify it under the terms of the GNU Lesser General Public
-License as published by the Free Software Foundation; either
-version 3 of the License, or (at your option) any later version.
-
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public
-License along with this library; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Screen diff detection and update logic
 
 #include "updatescreen.h"
 
-unsigned int *vncBuffer;
-
+uint32_t *vncBuffer;
 rfbScreenInfoPtr vncScreen;
+int blank;
 
-int updateScreen(int width, int height, int bpp) {
-	int x, y, slip, step, shift;
-	int vb_offset = 0, fb_offset = 0, px_offset = 0;
-	int max_x = -1, max_y = -1, min_x = 99999, min_y = 99999;
-	int idle = 1;
+void updateScreen(void) {
+	int x, y, xMin, yMin, xMax, yMax;
+	int slip, step, shift;
+	int vbOffset = 0, fbOffset = 0, pxOffset = 0;
+
+	// Reset idle state
+	idle = 1;
+
+	// Reset blank frame indicator
+	blank = 0;
+
+	// Bounding box init
+	xMin = 0;
+	xMax = screenInfo.width - 1;
+	yMin = screenInfo.height - 1;
+	yMax = 0;
 
 	// Create buffers
-	uint32_t* fb = (uint32_t*)readFrameBuffer();
-	uint32_t* vb = (uint32_t*)vncBuffer;
+	uint32_t* fb = readFrameBuffer();
+	uint32_t* vb = vncBuffer;
 
 	// Set the pixel grid slip (depends on the resolution)
-	if (height < 540) {
-		slip = 2;
-	} else if (height >= 540 && height < 720) {
-		slip = 3;
-	} else if (height >= 720 && height < 1080) {
-		slip = 4;
-	} else if (height >= 1080 && height < 1440) {
-		slip = 5;
+	if (screenInfo.height < 540) {
+		slip = 2; // Height below 540 pixels
+	} else if (screenInfo.height < 720) {
+		slip = 3; // Height between 540 and 719 pixels
+	} else if (screenInfo.height < 1080) {
+		slip = 4; // Height between 720 and 1079 pixels
+	} else if (screenInfo.height < 1440) {
+		slip = 5; // Height between 1080 and 1439 pixels
 	} else {
-		slip = 6;
+		slip = 6; // Height from 1440 pixels and above
 	}
 
 	// Set the inline pixel step
@@ -56,22 +48,22 @@ int updateScreen(int width, int height, int bpp) {
 	shift = rand() % step;
 
 	// Compare the buffers and find the differences in every line
-	for (y = 0; y < height; y++) {
+	for (y = 0; y < screenInfo.height; y++) {
 		// Set all offsets
-		vb_offset = y * width;
-		fb_offset = (y + screenInfo.yoffset) * screenInfo.xres_virtual + screenInfo.xoffset;
-		px_offset = (y * slip + shift) % step;
+		vbOffset = y * screenInfo.width;
+		fbOffset = (screenInfo.start + y) * (screenInfo.stride / (BPP / CHAR_BIT));
+		pxOffset = (y * slip + shift) % step;
 
 		// Compare certain pixels in every line with an offset
-		for (x = px_offset; x < width; x += step) {
-			if (vb[x + vb_offset] != fb[x + fb_offset]) {
+		for (x = pxOffset; x < screenInfo.width; x += step) {
+			if (vb[x + vbOffset] != fb[x + fbOffset]) {
 				if (idle) {
 					// The current line reduced by the slip value -> Set as the first different line
-					min_y = MIN(y - slip, min_y);
+					yMin = MIN(y - slip, yMin);
 					idle = 0;
 				}
 				// The current line increased by the slip value -> Set as the last different line
-				max_y = MAX(y + slip, max_y);
+				yMax = MAX(y + slip, yMax);
 				break; // There is no need to examine this line anymore if it already has a difference
 			}
 		}
@@ -79,19 +71,24 @@ int updateScreen(int width, int height, int bpp) {
 
 	// Fill the image buffer with the new content
 	if (!idle) {
-		min_x = 0;
-		min_y = MAX(0, min_y);
-		max_x = width - 1;
-		max_y = MIN(height - 1, max_y);
+		yMin = MAX(0, yMin);
+		yMax = MIN(screenInfo.height - 1, yMax);
 
-		for (y = min_y; y <= max_y; y++) {
-			vb_offset = y * width;
-			fb_offset = (y + screenInfo.yoffset) * screenInfo.xres_virtual + screenInfo.xoffset;
-			memcpy(vncBuffer + vb_offset, fb + fb_offset, width * bpp / CHAR_BIT);
+		for (y = yMin; y <= yMax; y++) {
+			vbOffset = y * screenInfo.width;
+			fbOffset = (screenInfo.start + y) * (screenInfo.stride / (BPP / CHAR_BIT));
+			memcpy(vncBuffer + vbOffset, fb + fbOffset, screenInfo.width * BPP / CHAR_BIT);
 		}
 
-		rfbMarkRectAsModified(vncScreen, min_x, min_y, max_x, max_y);
+		rfbMarkRectAsModified(vncScreen, xMin, yMin, xMax, yMax);
 	}
+}
 
-	return idle;
+void clearScreen(void) {
+	if (!blank) {
+		memset(vncBuffer, 0, screenFormat.size);
+		rfbMarkRectAsModified(vncScreen, 0, 0, screenInfo.width - 1, screenInfo.height - 1);
+		blank = 1; // The buffer is filled with a blank frame only once
+		idle = 1;
+	}
 }

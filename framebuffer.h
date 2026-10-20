@@ -1,43 +1,56 @@
-/*
-droid VNC server  - a vnc server for android
-Copyright (C) 2011 Jose Pereira <onaips@gmail.com>
-
-Modified for AML TV Boxes by kszaq <kszaquitto@gmail.com>
-Additional developments by dtech(.hu) <dee.gabor@gmail.com>
-
-This library is free software; you can redistribute it and/or
-modify it under the terms of the GNU Lesser General Public
-License as published by the Free Software Foundation; either
-version 3 of the License, or (at your option) any later version.
-
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public
-License along with this library; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Header file for framebuffer backend abstraction
 
 #ifndef FRAMEBUFFER_H
 #define FRAMEBUFFER_H
 
 #include "common.h"
 
-#include <limits.h>
+#ifdef HAVE_LIBDRM
+#include "backend/drm.h"
+#endif
 
-#define FB_DEVICE "/dev/fb0"
+#include "backend/fbdev.h"
 
-extern struct fb_var_screeninfo screenInfo;
+#define BACKEND_NONE	0
+#define BACKEND_FBDEV	1
+#define BACKEND_DRM	2
 
-void updateFrameBufferInfo(void);
-int roundUpToPageSize(int x);
-int initFrameBuffer(void);
+extern int activeBackend;
+extern int reinitDelay;
+
+typedef struct {
+	uint32_t width;		// Screen width in pixels
+	uint32_t height;	// Screen height in pixels
+	uint32_t stride;	// Aligned value of bytes per line
+	uint32_t start;		// Current frame vertical offset
+} screen_info_t;
+
+extern screen_info_t screenInfo;
+
+typedef struct _screenformat {
+	uint16_t width;
+	uint16_t height;
+
+	uint8_t bitsPerPixel;
+
+	uint16_t redMax;
+	uint16_t greenMax;
+	uint16_t blueMax;
+
+	uint8_t redShift;
+	uint8_t greenShift;
+	uint8_t blueShift;
+
+	uint32_t size;
+	uint32_t pad;
+} screen_format_t;
+
+extern screen_format_t screenFormat;
+
+void initFrameBuffer(void);
 void closeFrameBuffer(void);
-int checkResolutionChange(void);
-void updateScreenFormat(void);
-struct fb_var_screeninfo getScreenInfo(void);
-unsigned int *readFrameBuffer(void);
+int checkBufferStateChange(void);
+uint32_t *readFrameBuffer(void);
 
 #endif
