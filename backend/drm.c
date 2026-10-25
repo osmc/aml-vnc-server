@@ -5,7 +5,7 @@
 
 int drmFd = -1;
 int fbIndex = -1;
-int initCount = 0;
+int drmInitCount = 0;
 uint32_t connId, crtcId, fbId[DRM_FBMAX];
 void *drmBufferMap, *drmBufferMapList[DRM_FBMAX];
 drm_state_t drmState;
@@ -113,12 +113,12 @@ uint32_t drm_findVideoPlane(void) {
 }
 
 int drm_initFrameBuffer(void) {
-	LOG("-- Initializing DRM framebuffer device - Count: %d --\n", initCount + 1);
+	LOG("-- Initializing DRM framebuffer device - Count: %d --\n", drmInitCount + 1);
 
 	drmFd = open(DRM_DEVICE, O_RDONLY);
 	if (drmFd == -1) {
 		LOG(" Cannot open DRM framebuffer '%s'.\n", DRM_DEVICE);
-		if (!initCount) {
+		if (!drmInitCount) {
 			return -1; // Return to the selector
 		} else {
 			exit(EXIT_FAILURE);
@@ -235,7 +235,7 @@ int drm_initFrameBuffer(void) {
 	drmModeFreeCrtc(crtc);
 
 	// Increase init counter
-	initCount++;
+	drmInitCount++;
 
 	return 0;
 }
