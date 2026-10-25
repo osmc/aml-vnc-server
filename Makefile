@@ -9,7 +9,11 @@ LDFLAGS += -lvncserver -lpng -ljpeg -lpthread -lssl -lcrypto -lz -lresolv -lm
 
 SOURCES := framebuffer.c updatescreen.c input.c server.c $(BACKEND_DIR)/fbdev.c
 
+ifeq ($(DISABLE_DRM),1)
+HAVE_LIBDRM := 0
+else
 HAVE_LIBDRM := $(shell $(PKG_CONFIG) --exists libdrm 2>/dev/null && echo 1 || echo 0)
+endif
 
 ifeq ($(HAVE_LIBDRM),1)
 CFLAGS += $(shell $(PKG_CONFIG) --cflags libdrm) -DHAVE_LIBDRM
