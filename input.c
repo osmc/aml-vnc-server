@@ -17,7 +17,7 @@ void initVirtualKeyboard(void) {
 	LOG("-- Initializing virtual keyboard device --\n");
 
 	virtKbd = open("/dev/uinput", O_WRONLY | O_NDELAY );
-	if (virtKbd == 0) {
+	if (virtKbd == -1) {
 		LOG(" Could not open '/dev/uinput'.\n");
 		exit(EXIT_FAILURE);
 	}
@@ -52,7 +52,7 @@ void initVirtualPointer(void) {
 	LOG("-- Initializing virtual pointer device --\n");
 
 	virtPtr = open("/dev/uinput", O_WRONLY | O_NDELAY );
-	if (virtPtr == 0) {
+	if (virtPtr == -1) {
 		LOG(" Could not open '/dev/uinput'.\n");
 		exit(EXIT_FAILURE);
 	}
@@ -66,6 +66,7 @@ void initVirtualPointer(void) {
 	ioctl(virtPtr, UI_SET_EVBIT, EV_KEY);
 	ioctl(virtPtr, UI_SET_EVBIT, EV_REL);
 	ioctl(virtPtr, UI_SET_EVBIT, EV_ABS);
+	ioctl(virtPtr, UI_SET_EVBIT, EV_MSC);
 
 	ioctl(virtPtr, UI_SET_KEYBIT, BTN_LEFT);
 	ioctl(virtPtr, UI_SET_KEYBIT, BTN_RIGHT);
@@ -75,6 +76,8 @@ void initVirtualPointer(void) {
 
 	ioctl(virtPtr, UI_SET_ABSBIT, ABS_X);
 	ioctl(virtPtr, UI_SET_ABSBIT, ABS_Y);
+
+	ioctl(virtPtr, UI_SET_MSCBIT, MSC_SCAN);
 
 	uinpDev.absmin[ABS_X] = 0;
 	uinpDev.absmax[ABS_X] = screenFormat.width - 1;
