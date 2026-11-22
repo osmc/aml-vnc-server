@@ -4,17 +4,22 @@
 #include "fbdev.h"
 
 int fbFd = -1;
+int fbInitCount = 0;
 size_t fbSize = 0;
 void *fbBufferMap = MAP_FAILED;
 struct fb_var_screeninfo varInfo;
 
 int fbdev_initFrameBuffer(void) {
-	LOG("-- Initializing FBDEV framebuffer device --\n");
+	LOG("-- Initializing FBDEV framebuffer device - Count: %d --\n", fbInitCount + 1);
 
 	fbFd = open(FB_DEVICE, O_RDONLY);
 	if (fbFd == -1) {
 		LOG(" Cannot open FBDEV framebuffer device '%s'.\n", FB_DEVICE);
-		return -1; // Return to the selector
+		if (!fbInitCount) {
+			return -1; // Return to the selector
+		} else {
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	fbdev_updateFrameBufferInfo();
@@ -42,6 +47,9 @@ int fbdev_initFrameBuffer(void) {
 		LOG(" Failed to map FBDEV framebuffer memory into userspace.\n");
 		exit(EXIT_FAILURE);
 	}
+
+	// Increase init counter
+	fbInitCount++;
 
 	return 0;
 }
